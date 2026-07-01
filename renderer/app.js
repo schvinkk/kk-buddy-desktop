@@ -120,6 +120,98 @@ const AGENT_TOOLS = [
         required: ['path']
       }
     }
+  },
+  // ─── Web Tools ───
+  {
+    type: 'function',
+    function: {
+      name: 'web_search',
+      description: 'Search the web for information. Returns a list of search results with titles, URLs, and snippets.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Search query' },
+          max_results: { type: 'number', description: 'Max results to return (default 8)' }
+        },
+        required: ['query']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'web_fetch',
+      description: 'Fetch the content of a web page by URL. Returns the text content of the page.',
+      parameters: {
+        type: 'object',
+        properties: {
+          url: { type: 'string', description: 'The URL to fetch' },
+          max_length: { type: 'number', description: 'Max characters to return (default 100000)' }
+        },
+        required: ['url']
+      }
+    }
+  },
+  // ─── Memory Tools ───
+  {
+    type: 'function',
+    function: {
+      name: 'memory_write',
+      description: 'Save important information to persistent memory. Use this to remember user preferences, project conventions, decisions, or any facts that will be useful in future conversations.',
+      parameters: {
+        type: 'object',
+        properties: {
+          key: { type: 'string', description: 'A short unique key for this memory (e.g. "user-preference-language")' },
+          content: { type: 'string', description: 'The information to remember' },
+          tags: { type: 'array', items: { type: 'string' }, description: 'Optional tags for categorization' }
+        },
+        required: ['key', 'content']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'memory_search',
+      description: 'Search persistent memory for previously stored information. Returns matching memories ranked by relevance.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Search query to find relevant memories' },
+          limit: { type: 'number', description: 'Max results (default 10)' }
+        },
+        required: ['query']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'memory_delete',
+      description: 'Delete a specific memory entry by its key.',
+      parameters: {
+        type: 'object',
+        properties: {
+          key: { type: 'string', description: 'The key of the memory to delete' }
+        },
+        required: ['key']
+      }
+    }
+  },
+  // ─── Skills Tool ───
+  {
+    type: 'function',
+    function: {
+      name: 'load_skill',
+      description: 'Load a skill (specialized knowledge/workflow) to enhance your capabilities for the current task. Use when the user request matches a skill description.',
+      parameters: {
+        type: 'object',
+        properties: {
+          skill_name: { type: 'string', description: 'The directory name of the skill to load' }
+        },
+        required: ['skill_name']
+      }
+    }
   }
 ];
 
@@ -135,6 +227,8 @@ const App = {
   sidebarOpen: true,
   searchQuery: '',
   customModels: [],
+  _skillsCatalog: [],
+  _loadedSkillContent: null,
   defaultModels: [
     { id: 'gpt-4.1', name: 'GPT-4.1', url: 'https://api.openai.com/v1', key: '', api: 'chat' },
     { id: 'deepseek-v4-pro', name: 'DeepSeek V4 Pro', url: 'https://api.deepseek.com/v1', key: '', api: 'chat' },
@@ -156,6 +250,7 @@ const App = {
     this.showWelcome();
     this.setupKeyboard();
     this.setupDragDrop();
+    this.loadSkillsCatalog();
     // Init route bar
     document.querySelectorAll('.route-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === (this.config.routeMode || 'auto')));
     await this.checkConnection();
@@ -411,11 +506,15 @@ const App = {
   // ─── SETTINGS TABS ───
   settingsTab(tab) {
     document.querySelectorAll('.s-tab').forEach((el, i) => {
-      el.classList.toggle('active', ['model','general','agent'][i] === tab);
+      el.classList.toggle('active', ['model','general','agent','memory','skills'][i] === tab);
     });
     document.getElementById('panel-model').style.display = tab === 'model' ? '' : 'none';
     document.getElementById('panel-general').style.display = tab === 'general' ? '' : 'none';
     document.getElementById('panel-agent').style.display = tab === 'agent' ? '' : 'none';
+    document.getElementById('panel-memory').style.display = tab === 'memory' ? '' : 'none';
+    document.getElementById('panel-skills').style.display = tab === 'skills' ? '' : 'none';
+    if (tab === 'memory') this.renderMemoryList();
+    if (tab === 'skills') this.renderSkillsList();
   },
 
   // ─── MODEL LIST ───
@@ -815,7 +914,7 @@ const App = {
     this.scrollBottom();
 
     // Build API messages
-    const apiMsgs = this._buildApiMsgs(conv);
+    const apiMsgs = await this._buildApiMsgs(conv);
 
     this.isStreaming = true;
     this.abortCtrl = new AbortController();
@@ -832,9 +931,30 @@ const App = {
   },
 
   // ─── BUILD API MESSAGES ───
-  _buildApiMsgs(conv) {
+  async _buildApiMsgs(conv) {
     const apiMsgs = [];
-    if (this.config.systemPrompt) apiMsgs.push({ role: 'system', content: this.config.systemPrompt });
+    let sysPrompt = this.config.systemPrompt || '';
+
+    // Inject memory context
+    if (this.config.enableMemory !== false) {
+      try {
+        const memResult = await API.memoryGetAll();
+        if (memResult.success && memResult.memories.length > 0) {
+          const memText = memResult.memories.map(m => `- [${m.key}]: ${m.content}`).join('\n');
+          sysPrompt += '\n\n## 持久记忆\n以下是你记住的信息，请在回答时参考：\n' + memText;
+        }
+      } catch {}
+    }
+
+    // Inject skills catalog
+    if (this.config.enableSkills !== false && this._skillsCatalog) {
+      const skillList = this._skillsCatalog.map(s => `- **${s.name}**: ${s.description}`).join('\n');
+      if (skillList) {
+        sysPrompt += '\n\n## 可用技能\n当用户请求匹配以下技能时，使用 load_skill 工具加载对应技能：\n' + skillList;
+      }
+    }
+
+    if (sysPrompt) apiMsgs.push({ role: 'system', content: sysPrompt });
 
     const limit = this.config.historyLimit || 8;
     const msgs = conv.messages;
@@ -975,7 +1095,7 @@ const App = {
     document.getElementById('send-btn').style.display = 'none';
     document.getElementById('stop-btn').style.display = 'flex';
 
-    const apiMsgs = this._buildApiMsgs(conv);
+    const apiMsgs = await this._buildApiMsgs(conv);
     await this._runApiLoop(conv, apiMsgs);
 
     this.isStreaming = false;
@@ -1204,6 +1324,55 @@ const App = {
           } else { result = { success: false, output: r.error }; }
           break;
         }
+        // ─── Web Tools ───
+        case 'web_search': {
+          const r = await API.webSearch(args.query, args.max_results || 8);
+          if (r.success) {
+            if (!r.results.length) { result = { success: true, output: '未找到相关搜索结果' }; break; }
+            const lines = r.results.map((r, i) => `${i+1}. ${r.title}\n   ${r.url}\n   ${r.snippet}`);
+            result = { success: true, output: `搜索 "${args.query}" 找到 ${r.results.length} 个结果:\n\n${lines.join('\n\n')}` };
+          } else { result = { success: false, output: r.error }; }
+          break;
+        }
+        case 'web_fetch': {
+          const r = await API.webFetch(args.url, args.max_length || 100000);
+          if (r.success) {
+            result = { success: true, output: this._compressOutput(r.content, 300) };
+          } else { result = { success: false, output: r.error }; }
+          break;
+        }
+        // ─── Memory Tools ───
+        case 'memory_write': {
+          const r = await API.memorySave(args.key, args.content, args.tags);
+          if (r.success) {
+            result = { success: true, output: `已记住: [${args.key}] ${args.content.slice(0, 100)}` };
+          } else { result = { success: false, output: r.error }; }
+          break;
+        }
+        case 'memory_search': {
+          const r = await API.memorySearch(args.query, args.limit || 10);
+          if (r.success) {
+            if (!r.results.length) { result = { success: true, output: '未找到相关记忆' }; break; }
+            const lines = r.results.map(m => `[${m.key}]: ${m.content}`);
+            result = { success: true, output: `找到 ${r.results.length} 条相关记忆:\n${lines.join('\n')}` };
+          } else { result = { success: false, output: r.error }; }
+          break;
+        }
+        case 'memory_delete': {
+          const r = await API.memoryDelete(args.key);
+          result = { success: r.success, output: r.success ? `已删除记忆: ${args.key}` : r.error };
+          break;
+        }
+        // ─── Skills Tool ───
+        case 'load_skill': {
+          const r = await API.skillsRead(args.skill_name);
+          if (r.success) {
+            // Store skill content as context for the current conversation
+            this._loadedSkillContent = r.content;
+            result = { success: true, output: `技能 "${args.skill_name}" 已加载。请按照技能指引执行任务。\n\n技能内容摘要:\n${r.content.slice(0, 500)}...` };
+          } else { result = { success: false, output: `技能加载失败: ${r.error}` }; }
+          break;
+        }
         default:
           result = { success: false, output: '未知工具: ' + tc.name };
       }
@@ -1429,6 +1598,120 @@ const App = {
     }
   },
 
+  // ─── SKILLS CATALOG ───
+  async loadSkillsCatalog() {
+    if (!API) return;
+    try {
+      const r = await API.skillsList();
+      if (r.success) this._skillsCatalog = r.skills;
+    } catch {}
+  },
+
+  // ─── MEMORY MANAGEMENT UI ───
+  async renderMemoryList() {
+    if (!API) return;
+    const container = document.getElementById('memory-list');
+    if (!container) return;
+    container.innerHTML = '<div style="color:var(--text-3);font-size:12px">加载中...</div>';
+    try {
+      const r = await API.memoryList();
+      if (!r.success || !r.memories.length) {
+        container.innerHTML = '<div style="color:var(--text-3);font-size:12px;padding:12px 0">暂无记忆。AI 会在对话中自动记住重要信息。</div>';
+        return;
+      }
+      container.innerHTML = r.memories.map(m => `
+        <div class="memory-item" data-key="${this.esc(m.key)}">
+          <div class="mem-key">${this.esc(m.key)}</div>
+          <div class="mem-content">${this.esc(m.content.slice(0, 200))}</div>
+          <div class="mem-meta">
+            ${m.tags ? m.tags.map(t => `<span class="mem-tag">${this.esc(t)}</span>`).join('') : ''}
+            <span class="mem-time">${new Date(m.updatedAt).toLocaleDateString()}</span>
+          </div>
+          <button class="mem-del-btn" onclick="App.deleteMemory('${this.esc(m.key)}')" title="删除">✕</button>
+        </div>
+      `).join('');
+    } catch (e) {
+      container.innerHTML = '<div style="color:var(--text-3);font-size:12px">加载失败</div>';
+    }
+  },
+
+  async deleteMemory(key) {
+    if (!API) return;
+    if (!confirm(`确定删除记忆 "${key}"？`)) return;
+    const r = await API.memoryDelete(key);
+    if (r.success) { this.toast('记忆已删除', 'ok'); this.renderMemoryList(); }
+    else this.toast('删除失败: ' + r.error, 'err');
+  },
+
+  async addMemoryManual() {
+    const key = document.getElementById('mem-add-key')?.value?.trim();
+    const content = document.getElementById('mem-add-content')?.value?.trim();
+    if (!key || !content) { this.toast('请填写键名和内容', 'err'); return; }
+    const r = await API.memorySave(key, content, []);
+    if (r.success) {
+      this.toast('记忆已添加', 'ok');
+      document.getElementById('mem-add-key').value = '';
+      document.getElementById('mem-add-content').value = '';
+      this.renderMemoryList();
+    } else this.toast('添加失败: ' + r.error, 'err');
+  },
+
+  // ─── SKILLS MANAGEMENT UI ───
+  async renderSkillsList() {
+    if (!API) return;
+    const container = document.getElementById('skills-list');
+    if (!container) return;
+    container.innerHTML = '<div style="color:var(--text-3);font-size:12px">加载中...</div>';
+    try {
+      const r = await API.skillsList();
+      if (!r.success) { container.innerHTML = '<div style="color:var(--text-3);font-size:12px">加载失败</div>'; return; }
+      this._skillsCatalog = r.skills;
+      if (!r.skills.length) {
+        container.innerHTML = `
+          <div style="color:var(--text-3);font-size:12px;padding:12px 0">
+            暂无已安装技能。点击"安装技能"导入 .zip 技能包。
+          </div>`;
+        return;
+      }
+      container.innerHTML = r.skills.map(s => `
+        <div class="skill-item">
+          <div class="skill-info">
+            <div class="skill-name">${this.esc(s.name)}</div>
+            <div class="skill-desc">${this.esc(s.description.slice(0, 150))}</div>
+            ${s.version ? `<div class="skill-ver">v${this.esc(s.version)}</div>` : ''}
+          </div>
+          <button class="skill-del-btn" onclick="App.deleteSkill('${this.esc(s.dir)}')" title="卸载">✕</button>
+        </div>
+      `).join('');
+    } catch (e) {
+      container.innerHTML = '<div style="color:var(--text-3);font-size:12px">加载失败</div>';
+    }
+  },
+
+  async installSkill() {
+    if (!API) return;
+    const file = await API.openFileDialog([{ name: 'Skill Package', extensions: ['zip'] }]);
+    if (!file) return;
+    this.toast('正在安装技能...', 'info');
+    const r = await API.skillsInstall(file);
+    if (r.success) {
+      this.toast('技能安装成功', 'ok');
+      this.loadSkillsCatalog();
+      this.renderSkillsList();
+    } else this.toast('安装失败: ' + r.error, 'err');
+  },
+
+  async deleteSkill(skillName) {
+    if (!API) return;
+    if (!confirm(`确定卸载技能 "${skillName}"？`)) return;
+    const r = await API.skillsDelete(skillName);
+    if (r.success) {
+      this.toast('技能已卸载', 'ok');
+      this.loadSkillsCatalog();
+      this.renderSkillsList();
+    } else this.toast('卸载失败: ' + r.error, 'err');
+  },
+
   // ─── SETTINGS ───
   openSettings() {
     this.renderModelList();
@@ -1440,6 +1723,8 @@ const App = {
     document.getElementById('cfg-maxturns').value = this.config.maxTurns || 10;
     document.getElementById('cfg-history-limit').value = this.config.historyLimit || 8;
     document.getElementById('cfg-compress').checked = this.config.compressTools !== false;
+    document.getElementById('cfg-enable-memory').checked = this.config.enableMemory !== false;
+    document.getElementById('cfg-enable-skills').checked = this.config.enableSkills !== false;
     document.getElementById('add-model-form').style.display = 'none';
     // Populate cheap model dropdown
     const cheapSel = document.getElementById('cfg-cheap-model');
@@ -1469,6 +1754,8 @@ const App = {
     this.config.cheapModel = document.getElementById('cfg-cheap-model').value;
     this.config.historyLimit = parseInt(document.getElementById('cfg-history-limit').value) || 8;
     this.config.compressTools = document.getElementById('cfg-compress').checked;
+    this.config.enableMemory = document.getElementById('cfg-enable-memory').checked;
+    this.config.enableSkills = document.getElementById('cfg-enable-skills').checked;
     this.saveConfig();
     this.updateModelBadge();
     this.closeSettings();

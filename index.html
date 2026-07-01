@@ -137,6 +137,8 @@
       <button class="s-tab active" onclick="App.settingsTab('model')">模型配置</button>
       <button class="s-tab" onclick="App.settingsTab('general')">通用设置</button>
       <button class="s-tab" onclick="App.settingsTab('agent')">Agent</button>
+      <button class="s-tab" onclick="App.settingsTab('memory')">记忆</button>
+      <button class="s-tab" onclick="App.settingsTab('skills')">技能</button>
     </div>
 
     <div class="mb" style="max-height:55vh;overflow-y:auto">
@@ -250,8 +252,51 @@
             <div>🔧 <strong style="color:var(--text-2)">grep_search</strong> — 正则搜索文件内容</div>
             <div>🔧 <strong style="color:var(--text-2)">read_multiple_files</strong> — 批量读取多个文件</div>
             <div>🔧 <strong style="color:var(--text-2)">list_files</strong> — 递归列出文件(支持模式过滤)</div>
+            <div>🌐 <strong style="color:var(--text-2)">web_search</strong> — 网络搜索</div>
+            <div>🌐 <strong style="color:var(--text-2)">web_fetch</strong> — 抓取网页内容</div>
+            <div>🧠 <strong style="color:var(--text-2)">memory_write</strong> — 保存记忆</div>
+            <div>🧠 <strong style="color:var(--text-2)">memory_search</strong> — 搜索记忆</div>
+            <div>🧠 <strong style="color:var(--text-2)">memory_delete</strong> — 删除记忆</div>
+            <div>📚 <strong style="color:var(--text-2)">load_skill</strong> — 加载技能</div>
           </div>
         </div>
+      </div>
+
+      <!-- MEMORY TAB -->
+      <div class="s-panel" id="panel-memory" style="display:none">
+        <div class="s-group">
+          <label style="display:flex;align-items:center;gap:6px">
+            <input type="checkbox" id="cfg-enable-memory" checked style="width:auto">
+            启用记忆系统
+          </label>
+          <div class="hint">开启后 AI 会自动记住重要信息，跨对话保留。记忆会注入到系统提示词中。</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px">
+          <span style="font-size:13px;font-weight:600;color:var(--text-2)">已存储的记忆</span>
+          <button class="btn btn-p" style="padding:4px 14px;font-size:12px" onclick="document.getElementById('mem-add-form').style.display=document.getElementById('mem-add-form').style.display==='none'?'block':'none'">+ 手动添加</button>
+        </div>
+        <div id="mem-add-form" style="display:none;margin-bottom:12px;padding:12px;background:var(--bg-3);border-radius:var(--radius);border:1px solid var(--border-1)">
+          <input id="mem-add-key" placeholder="记忆键名 (如: user-preference-lang)" style="width:100%;margin-bottom:8px;padding:6px 10px;background:var(--bg-2);border:1px solid var(--border-1);border-radius:4px;color:var(--text-1);font-size:12px">
+          <textarea id="mem-add-content" placeholder="记忆内容..." rows="2" style="width:100%;margin-bottom:8px;padding:6px 10px;background:var(--bg-2);border:1px solid var(--border-1);border-radius:4px;color:var(--text-1);font-size:12px;resize:vertical"></textarea>
+          <button class="btn btn-p" style="padding:4px 14px;font-size:12px" onclick="App.addMemoryManual()">保存</button>
+        </div>
+        <div id="memory-list"></div>
+      </div>
+
+      <!-- SKILLS TAB -->
+      <div class="s-panel" id="panel-skills" style="display:none">
+        <div class="s-group">
+          <label style="display:flex;align-items:center;gap:6px">
+            <input type="checkbox" id="cfg-enable-skills" checked style="width:auto">
+            启用技能系统
+          </label>
+          <div class="hint">开启后 AI 可以根据任务自动加载专业技能。技能目录会注入到系统提示词中。</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px">
+          <span style="font-size:13px;font-weight:600;color:var(--text-2)">已安装技能</span>
+          <button class="btn btn-p" style="padding:4px 14px;font-size:12px" onclick="App.installSkill()">安装技能 (.zip)</button>
+        </div>
+        <div id="skills-list"></div>
       </div>
     </div>
 

@@ -3,6 +3,8 @@ const path = require('path');
 const { exec } = require('child_process');
 const fs = require('fs');
 const os = require('os');
+const https = require('https');
+const http = require('http');
 
 let mainWindow = null;
 let tray = null;
@@ -317,6 +319,227 @@ ipcMain.handle('os:platform', () => process.platform);
 
 // App version
 ipcMain.handle('app:version', () => app.getVersion());
+
+// ─────────────── MEMORY SYSTEM ───────────────
+const MEMORY_DIR = path.join(app.getPath('userData'), 'memories');
+function ensureMemoryDir() {
+  if (!fs.existsSync(MEMORY_DIR)) fs.mkdirSync(MEMORY_DIR, { recursive: true });
+}
+
+function loadMemories() {
+  ensureMemoryDir();
+  const file = path.join(MEMORY_DIR, 'memories.json');
+  if (!fs.existsSync(file)) return [];
+  try { return JSON.parse(fs.readFileSync(file, 'utf-8')); } catch { return []; }
+}
+
+function saveMemories(memories) {
+  ensureMemoryDir();
+  fs.writeFileSync(path.join(MEMORY_DIR, 'memories.json'), JSON.stringify(memories, null, 2), 'utf-8');
+}
+
+// Memory: Save
+ipcMain.handle('memory:save', async (_, { key, content, tags }) => {
+  try {
+    const memories = loadMemories();
+    const existing = memories.findIndex(m => m.key === key);
+    const entry = { key, content, tags: tags || [], createdAt: existing >= 0 ? memories[existing].createdAt : Date.now(), updatedAt: Date.now() };
+    if (existing >= 0) memories[existing] = entry; else memories.push(entry);
+    saveMemories(memories);
+    return { success: true, entry };
+  } catch (err) { return { success: false, error: err.message }; }
+});
+
+// Memory: Search
+ipcMain.handle('memory:search', async (_, { query, limit }) => {
+  try {
+    const memories = loadMemories();
+    const q = query.toLowerCase();
+    const scored = memories.map(m => {
+      let score = 0;
+      if (m.key.toLowerCase().includes(q)) score += 10;
+      if (m.content.toLowerCase().includes(q)) score += 5;
+      if (m.tags && m.tags.some(t => t.toLowerCase().includes(q))) score += 8;
+      return { ...m, score };
+    }).filter(m => m.score > 0).sort((a, b) => b.score - a.score);
+    return { success: true, results: scored.slice(0, limit || 10) };
+  } catch (err) { return { success: false, error: err.message }; }
+});
+
+// Memory: List all
+ipcMain.handle('memory:list', async () => {
+  try {
+    return { success: true, memories: loadMemories() };
+  } catch (err) { return { success: false, error: err.message }; }
+});
+
+// Memory: Delete
+ipcMain.handle('memory:delete', async (_, { key }) => {
+  try {
+    const memories = loadMemories().filter(m => m.key !== key);
+    saveMemories(memories);
+    return { success: true };
+  } catch (err) { return { success: false, error: err.message }; }
+});
+
+// Memory: Get all (for system prompt injection)
+ipcMain.handle('memory:get-all', async () => {
+  try {
+    return { success: true, memories: loadMemories() };
+  } catch (err) { return { success: false, error: err.message }; }
+});
+
+// ─────────────── WEB TOOLS ───────────────
+
+// Web Fetch: GET a URL and return text content
+ipcMain.handle('web:fetch', async (_, { url, maxLen }) => {
+  return new Promise((resolve) => {
+    try {
+      const client = url.startsWith('https') ? https : http;
+      const req = client.get(url, { headers: { 'User-Agent': 'KK-Buddy/2.0' }, timeout: 15000 }, (res) => {
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          // Follow one redirect
+          const redirectUrl = res.headers.location.startsWith('http') ? res.headers.location : new URL(res.headers.location, url).href;
+          resolve({ success: false, error: `Redirect to ${redirectUrl}` });
+          return;
+        }
+        let data = '';
+        res.on('data', chunk => {
+          data += chunk.toString();
+          if (data.length > (maxLen || 100000)) { res.destroy(); }
+        });
+        res.on('end', () => {
+          // Strip HTML tags for basic text extraction
+          let text = data.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+                         .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+                         .replace(/<[^>]+>/g, ' ')
+                         .replace(/\s+/g, ' ')
+                         .trim();
+          resolve({ success: true, content: text.slice(0, maxLen || 100000), contentType: res.headers['content-type'] || '' });
+        });
+      });
+      req.on('error', (err) => resolve({ success: false, error: err.message }));
+      req.on('timeout', () => { req.destroy(); resolve({ success: false, error: 'Request timeout' }); });
+    } catch (err) { resolve({ success: false, error: err.message }); }
+  });
+});
+
+// Web Search: Search via DuckDuckGo HTML endpoint
+ipcMain.handle('web:search', async (_, { query, maxResults }) => {
+  return new Promise((resolve) => {
+    try {
+      const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+      https.get(searchUrl, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }, timeout: 15000 }, (res) => {
+        let data = '';
+        res.on('data', chunk => { data += chunk.toString(); if (data.length > 200000) res.destroy(); });
+        res.on('end', () => {
+          const results = [];
+          const max = Math.min(maxResults || 8, 15);
+          // Parse DuckDuckGo HTML results
+          const resultRegex = /<a rel="nofollow" class="result__a" href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g;
+          let match;
+          while ((match = resultRegex.exec(data)) !== null && results.length < max) {
+            const url = match[1].replace(/\/\/duckduckgo\.com\/l\/\?uddg=/, '').split('&')[0];
+            const title = match[2].replace(/<[^>]+>/g, '').trim();
+            const snippet = match[3].replace(/<[^>]+>/g, '').trim();
+            try {
+              const decodedUrl = decodeURIComponent(url.replace(/^(https?:\/\/)/, '$1'));
+              results.push({ title, url: decodedUrl, snippet });
+            } catch { results.push({ title, url, snippet }); }
+          }
+          resolve({ success: true, results });
+        });
+      }).on('error', (err) => resolve({ success: false, error: err.message }));
+    } catch (err) { resolve({ success: false, error: err.message }); }
+  });
+});
+
+// ─────────────── SKILLS SYSTEM ───────────────
+const SKILLS_DIR = path.join(app.getPath('userData'), 'skills');
+
+function ensureSkillsDir() {
+  if (!fs.existsSync(SKILLS_DIR)) fs.mkdirSync(SKILLS_DIR, { recursive: true });
+}
+
+// Skills: List all installed skills
+ipcMain.handle('skills:list', async () => {
+  try {
+    ensureSkillsDir();
+    const dirs = fs.readdirSync(SKILLS_DIR, { withFileTypes: true }).filter(d => d.isDirectory());
+    const skills = [];
+    for (const dir of dirs) {
+      const skillFile = path.join(SKILLS_DIR, dir.name, 'SKILL.md');
+      if (fs.existsSync(skillFile)) {
+        const content = fs.readFileSync(skillFile, 'utf-8');
+        // Parse YAML frontmatter
+        const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
+        let name = dir.name, description = '', version = '';
+        if (fmMatch) {
+          const lines = fmMatch[1].split('\n');
+          for (const line of lines) {
+            const kv = line.match(/^(\w+):\s*(.+)$/);
+            if (kv) {
+              if (kv[1] === 'name') name = kv[2].trim();
+              if (kv[1] === 'description') description = kv[2].trim();
+              if (kv[1] === 'version') version = kv[2].trim();
+            }
+          }
+        }
+        skills.push({ name, description, version, dir: dir.name, hasContent: content.length > 100 });
+      }
+    }
+    return { success: true, skills };
+  } catch (err) { return { success: false, error: err.message }; }
+});
+
+// Skills: Read skill content (for injection into system prompt)
+ipcMain.handle('skills:read', async (_, { skillName }) => {
+  try {
+    const skillFile = path.join(SKILLS_DIR, skillName, 'SKILL.md');
+    if (!fs.existsSync(skillFile)) return { success: false, error: 'Skill not found' };
+    const content = fs.readFileSync(skillFile, 'utf-8');
+    return { success: true, content };
+  } catch (err) { return { success: false, error: err.message }; }
+});
+
+// Skills: Install from zip file
+ipcMain.handle('skills:install', async (_, { filePath }) => {
+  try {
+    ensureSkillsDir();
+    // Use unzip via child_process
+    return new Promise((resolve) => {
+      const cmd = process.platform === 'win32'
+        ? `powershell -Command "Expand-Archive -Path '${filePath}' -DestinationPath '${SKILLS_DIR}' -Force"`
+        : `unzip -o "${filePath}" -d "${SKILLS_DIR}"`;
+      exec(cmd, (err) => {
+        if (err) resolve({ success: false, error: err.message });
+        else resolve({ success: true });
+      });
+    });
+  } catch (err) { return { success: false, error: err.message }; }
+});
+
+// Skills: Delete
+ipcMain.handle('skills:delete', async (_, { skillName }) => {
+  try {
+    const skillDir = path.join(SKILLS_DIR, skillName);
+    if (fs.existsSync(skillDir)) {
+      fs.rmSync(skillDir, { recursive: true, force: true });
+    }
+    return { success: true };
+  } catch (err) { return { success: false, error: err.message }; }
+});
+
+// Skills: Get directory path (for file resolution)
+ipcMain.handle('skills:get-dir', async () => {
+  ensureSkillsDir();
+  return SKILLS_DIR;
+});
+
+// Get app data path
+ipcMain.handle('app:get-path', async (_, { name }) => {
+  return app.getPath(name);
+});
 
 // ─────────────── APP LIFECYCLE ───────────────
 app.whenReady().then(() => {
