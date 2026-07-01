@@ -427,7 +427,7 @@ const App = {
       effort: 'medium',
       maxTokens: 16384,
       temperature: 0.7,
-      systemPrompt: '你是一个专业的 AI 编程助手，擅长编写、调试和优化代码。请用中文回答问题，提供清晰准确的技术建议。当需要时，你可以执行 shell 命令、读写文件来完成任务。',
+      systemPrompt: '你是 KK-Buddy，一个专业的桌面 AI 编程助手。你擅长编写、调试和优化代码，也能帮助用户完成各种任务。请用中文回答问题，提供清晰准确的技术建议。当需要时，你可以执行 shell 命令、读写文件来完成任务。',
       agentMode: true,
       maxTurns: 10,
       projectPath: '',
@@ -768,7 +768,7 @@ const App = {
     const isUser = role === 'user';
     const avatarClass = isUser ? 'user-av' : 'bot-av';
     const nameClass = isUser ? 'user-n' : 'bot-n';
-    const nameText = isUser ? '你' : 'Codex';
+    const nameText = isUser ? '你' : 'KK-Buddy';
     const icon = isUser ? 'U' : '';
 
     let html = `<div class="msg-head"><span class="msg-avatar ${avatarClass}">${icon}</span><span class="msg-name ${nameClass}">${nameText}</span></div><div class="msg-body">`;
@@ -832,7 +832,7 @@ const App = {
     const inner = document.getElementById('chat-inner');
     const div = document.createElement('div');
     div.className = 'msg'; div.id = 'typing-msg';
-    div.innerHTML = `<div class="msg-head"><span class="msg-avatar bot-av">⚡</span><span class="msg-name bot-n">Codex</span></div><div class="msg-body"><div class="msg-text"><div class="typing"><span></span><span></span><span></span></div></div></div>`;
+    div.innerHTML = `<div class="msg-head"><span class="msg-avatar bot-av">⚡</span><span class="msg-name bot-n">KK-Buddy</span></div><div class="msg-body"><div class="msg-text"><div class="typing"><span></span><span></span><span></span></div></div></div>`;
     inner.appendChild(div);
     this.scrollBottom();
   },
@@ -1120,7 +1120,7 @@ const App = {
   // ─── API LOOP (shared by send & retry) ───
   async _runApiLoop(conv, apiMsgs) {
     const agentMode = this.config.agentMode;
-    const maxTurns = agentMode ? 10 : 1;
+    const maxTurns = agentMode ? (this.config.maxTurns || 10) : 1;
 
     // Smart routing: determine which model to use
     let routeModel = null; // null = use main model
@@ -1144,6 +1144,8 @@ const App = {
     }
 
     for (let turn = 0; turn < maxTurns; turn++) {
+      // Check if generation was stopped
+      if (!this.isStreaming) break;
       try {
         const result = await this.callAPI(apiMsgs, agentMode && turn < maxTurns - 1, routeModel);
 
@@ -1155,6 +1157,8 @@ const App = {
           this.scrollBottom();
 
           for (let i = 0; i < result.toolCalls.length; i++) {
+            // Check if generation was stopped
+            if (!this.isStreaming) break;
             const tc = result.toolCalls[i];
             const toolResult = await this.execTool(tc);
             assistantMsg.toolCalls[i].status = toolResult.success ? 'done' : 'error';
@@ -1238,9 +1242,12 @@ const App = {
       messages: messages,
       max_tokens: this.config.maxTokens,
       temperature: this.config.temperature,
-      stream: true,
-      stream_options: { include_usage: true }
+      stream: true
     };
+    // stream_options is OpenAI-specific, only include if enabled
+    if (this.config.enableUsageTracking !== false) {
+      body.stream_options = { include_usage: true };
+    }
     if (useTools && AGENT_TOOLS.length) {
       const ccTools = ['screenshot', 'click', 'type_text', 'scroll'];
       body.tools = this.config.computerControl
@@ -1255,16 +1262,35 @@ const App = {
     const headers = { 'Content-Type': 'application/json' };
     if (apiKey) headers['Authorization'] = 'Bearer ' + apiKey;
 
-    const resp = await fetch(url, {
+    let resp = await fetch(url, {
       method: 'POST',
       headers,
       body: JSON.stringify(body),
       signal: this.abortCtrl.signal
     });
 
+    // If API rejects stream_options, retry without it
+    if (!resp.ok && body.stream_options) {
+      delete body.stream_options;
+      resp = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+        signal: this.abortCtrl.signal
+      });
+    }
+
     if (!resp.ok) {
       const errText = await resp.text().catch(() => '');
-      throw new Error(`API ${resp.status}: ${errText.slice(0, 300)}`);
+      // Provide more helpful error messages
+      let errMsg = `API ${resp.status}`;
+      if (resp.status === 401) errMsg += ': API Key 无效或已过期';
+      else if (resp.status === 403) errMsg += ': 没有权限访问此模型';
+      else if (resp.status === 404) errMsg += ': API 地址或模型 ID 不正确';
+      else if (resp.status === 429) errMsg += ': 请求频率过高，请稍后重试';
+      else if (resp.status === 500) errMsg += ': 服务端内部错误';
+      if (errText) errMsg += '\n' + errText.slice(0, 300);
+      throw new Error(errMsg);
     }
 
     return await this.parseStream(resp);
@@ -1563,7 +1589,13 @@ const App = {
   // ─── STOP GENERATION ───
   stopGen() {
     if (this.abortCtrl) this.abortCtrl.abort();
+    this.isStreaming = false;
+    this.abortCtrl = null;
     this._streamMsgDiv = null;
+    document.getElementById('send-btn').style.display = 'flex';
+    document.getElementById('stop-btn').style.display = 'none';
+    this.removeTyping();
+    this.appendMsg('assistant', '_已停止生成_', null);
   },
 
   setRouteMode(mode) {
@@ -1725,7 +1757,7 @@ const App = {
       if (m.role === 'user') md += `## 🧑 你\n\n${m.content}\n\n`;
       else if (m.role === 'assistant') {
         if (m.reasoning) md += `<details><summary>思考过程</summary>\n\n${m.reasoning}\n\n</details>\n\n`;
-        md += `## ⚡ Codex\n\n${m.content || ''}\n\n`;
+        md += `## ⚡ KK-Buddy\n\n${m.content || ''}\n\n`;
         if (m.toolCalls) m.toolCalls.forEach(tc => {
           md += `> 🔧 **${tc.name}**: \`${JSON.stringify(tc.args)}\`\n> ${tc.result || ''}\n\n`;
         });
