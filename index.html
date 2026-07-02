@@ -3,8 +3,46 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KK-Buddy Desktop</title>
+<title>KK-Buddy Desktop - AI编程助手</title>
 <link rel="stylesheet" href="css/theme.css">
+<style>
+  /* 明亮清新主题增强样式 */
+  body {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    min-height: 100vh;
+  }
+  #sidebar {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    box-shadow: 2px 0 20px rgba(0, 0, 0, 0.08);
+  }
+  #main {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+  }
+  .msg {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+  }
+  .msg-user {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+  }
+  #new-chat-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 20px;
+    padding: 12px 20px;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  }
+  #new-chat-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+  }
+</style>
 </head>
 <body>
 <div id="titlebar"><span class="tb-title">KK-Buddy Desktop</span></div>
@@ -139,6 +177,8 @@
       <button class="s-tab" onclick="App.settingsTab('agent')">Agent</button>
       <button class="s-tab" onclick="App.settingsTab('memory')">记忆</button>
       <button class="s-tab" onclick="App.settingsTab('skills')">技能</button>
+      <button class="s-tab" onclick="App.settingsTab('plugins')">MCP插件</button>
+      <button class="s-tab" onclick="App.settingsTab('tools')">工具箱</button>
     </div>
 
     <div class="mb" style="max-height:55vh;overflow-y:auto">
@@ -334,6 +374,56 @@
           <button class="btn btn-p" style="padding:4px 14px;font-size:12px" onclick="App.installSkill()">安装技能 (.zip)</button>
         </div>
         <div id="skills-list"></div>
+      </div>
+
+      <!-- MCP PLUGINS TAB (新增) -->
+      <div class="s-panel" id="panel-plugins" style="display:none">
+        <div class="s-group">
+          <label style="display:flex;align-items:center;gap:6px">
+            <input type="checkbox" id="cfg-enable-plugins" checked style="width:auto">
+            启用 MCP 插件系统
+          </label>
+          <div class="hint">开启后AI可调用内置MCP插件。共 <span id="plugin-total-count">40</span> 个内置插件，<span id="plugin-enabled-count">40</span> 个已启用</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px">
+          <span style="font-size:13px;font-weight:600;color:var(--text-2)">内置 MCP 插件</span>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-s" style="padding:4px 14px;font-size:12px" onclick="App.pluginsFilterAll()">全部</button>
+            <button class="btn btn-s" style="padding:4px 14px;font-size:12px" onclick="App.pluginsFilterEnabled()">已启用</button>
+            <button class="btn btn-s" style="padding:4px 14px;font-size:12px" onclick="App.pluginsFilterDisabled()">已禁用</button>
+          </div>
+        </div>
+        <div id="plugins-list" style="max-height:45vh;overflow-y:auto"></div>
+      </div>
+
+      <!-- TOOLS TAB -->
+      <div class="s-panel" id="panel-tools" style="display:none">
+        <div style="padding:12px;background:var(--bg-3);border-radius:var(--radius);border:1px solid var(--border-1);margin-bottom:12px">
+          <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">📄 文件生成工具</div>
+          <div style="font-size:12px;color:var(--text-3);line-height:2">
+            <div>📝 <strong style="color:var(--text-2)">generate_docx</strong> — 生成 Word 文档</div>
+            <div>📊 <strong style="color:var(--text-2)">generate_pptx</strong> — 生成 PPT 演示文稿</div>
+            <div>📑 <strong style="color:var(--text-2)">generate_pdf</strong> — 生成 PDF 文档</div>
+            <div>📈 <strong style="color:var(--text-2)">generate_excel</strong> — 生成 Excel 表格</div>
+            <div>🎨 <strong style="color:var(--text-2)">generate_mermaid</strong> — 生成流程图/图表</div>
+          </div>
+        </div>
+        <div style="padding:12px;background:var(--bg-3);border-radius:var(--radius);border:1px solid var(--border-1);margin-bottom:12px">
+          <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">💻 代码执行工具</div>
+          <div style="font-size:12px;color:var(--text-3);line-height:2">
+            <div>🔧 <strong style="color:var(--text-2)">shell</strong> — 执行 Shell 命令</div>
+            <div>📦 <strong style="color:var(--text-2)">npm_install</strong> — 安装 npm 包</div>
+            <div>🚀 <strong style="color:var(--text-2)">run_script</strong> — 运行 Node.js 脚本</div>
+          </div>
+        </div>
+        <div style="padding:12px;background:var(--bg-3);border-radius:var(--radius);border:1px solid var(--border-1)">
+          <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">🌐 网络工具</div>
+          <div style="font-size:12px;color:var(--text-3);line-height:2">
+            <div>🔍 <strong style="color:var(--text-2)">web_search</strong> — 网络搜索</div>
+            <div>🌐 <strong style="color:var(--text-2)">web_fetch</strong> — 抓取网页内容</div>
+            <div>📡 <strong style="color:var(--text-2)">api_call</strong> — 调用 REST API</div>
+          </div>
+        </div>
       </div>
     </div>
 

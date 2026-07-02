@@ -213,6 +213,377 @@ const AGENT_TOOLS = [
       }
     }
   },
+  // ─── File Generation Tools ───
+  {
+    type: 'function',
+    function: {
+      name: 'generate_docx',
+      description: 'Generate a Word document (DOCX) with title, headings, paragraphs, and tables. Returns the file path.',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Document title' },
+          sections: {
+            type: 'array',
+            description: 'Array of content sections',
+            items: {
+              type: 'object',
+              properties: {
+                type: { type: 'string', enum: ['heading', 'paragraph', 'table'], description: 'Section type' },
+                text: { type: 'string', description: 'Text content' },
+                level: { type: 'number', description: 'Heading level (1-3)' },
+                rows: { type: 'array', description: 'Table rows (array of arrays)' },
+                fontSize: { type: 'number', description: 'Font size in half-points' },
+                alignment: { type: 'string', enum: ['left', 'center', 'right', 'justify'] }
+              }
+            }
+          },
+          outputPath: { type: 'string', description: 'Output file path (optional, defaults to Desktop)' }
+        },
+        required: ['title', 'sections']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'generate_pptx',
+      description: 'Generate a PowerPoint presentation (PPTX) with multiple slides. Returns the file path.',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Presentation title' },
+          slides: {
+            type: 'array',
+            description: 'Array of slide definitions',
+            items: {
+              type: 'object',
+              properties: {
+                title: { type: 'string', description: 'Slide title' },
+                content: { type: ['string', 'array'], description: 'Slide content (text or array)' },
+                background: { type: 'string', description: 'Background color hex' },
+                notes: { type: 'string', description: 'Speaker notes' }
+              }
+            }
+          },
+          outputPath: { type: 'string', description: 'Output file path' },
+          theme: {
+            type: 'object',
+            properties: {
+              headColor: { type: 'string', description: 'Title color' },
+              bodyColor: { type: 'string', description: 'Body text color' }
+            }
+          }
+        },
+        required: ['title', 'slides']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'generate_pdf',
+      description: 'Generate a PDF document with formatted text content. Returns the file path.',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Document title' },
+          content: {
+            type: ['string', 'array'],
+            description: 'Text content or array of content blocks'
+          },
+          outputPath: { type: 'string', description: 'Output file path' },
+          options: {
+            type: 'object',
+            properties: {
+              size: { type: 'string', description: 'Page size (A4, Letter, etc.)' },
+              margin: { type: 'number', description: 'Page margin in points' }
+            }
+          }
+        },
+        required: ['title', 'content']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'generate_excel',
+      description: 'Generate an Excel spreadsheet with formatted data. Returns the file path.',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Workbook title' },
+          sheets: {
+            type: 'array',
+            description: 'Array of worksheet definitions',
+            items: {
+              type: 'object',
+              properties: {
+                name: { type: 'string', description: 'Sheet name' },
+                headers: { type: 'array', description: 'Column headers' },
+                rows: { type: 'array', description: 'Data rows (array of arrays)' }
+              }
+            }
+          },
+          outputPath: { type: 'string', description: 'Output file path' }
+        },
+        required: ['title', 'sheets']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'generate_mermaid',
+      description: 'Generate a diagram (flowchart, sequence, class, etc.) from Mermaid syntax. Returns SVG file path.',
+      parameters: {
+        type: 'object',
+        properties: {
+          code: { type: 'string', description: 'Mermaid diagram code' },
+          outputPath: { type: 'string', description: 'Output SVG file path' },
+          theme: { type: 'string', description: 'Theme (default, dark, forest, neutral)' }
+        },
+        required: ['code']
+      }
+    }
+  },
+  // ─── Browser Automation Tools ───
+  {
+    type: 'function',
+    function: {
+      name: 'browser_launch',
+      description: 'Launch a headless or headed browser instance for web automation.',
+      parameters: {
+        type: 'object',
+        properties: {
+          headless: { type: 'boolean', description: 'Run in headless mode (default: true)' }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'browser_navigate',
+      description: 'Navigate to a URL and return the page title.',
+      parameters: {
+        type: 'object',
+        properties: {
+          url: { type: 'string', description: 'URL to navigate to' },
+          waitUntil: { type: 'string', description: 'Wait condition (domcontentloaded, load, networkidle)' }
+        },
+        required: ['url']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'browser_get_content',
+      description: 'Get text content from a web page or specific element.',
+      parameters: {
+        type: 'object',
+        properties: {
+          url: { type: 'string', description: 'Page URL' },
+          selector: { type: 'string', description: 'CSS selector for specific element' }
+        },
+        required: ['url']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'browser_click',
+      description: 'Click an element on a web page.',
+      parameters: {
+        type: 'object',
+        properties: {
+          url: { type: 'string', description: 'Page URL' },
+          selector: { type: 'string', description: 'CSS selector of element to click' }
+        },
+        required: ['url', 'selector']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'browser_fill',
+      description: 'Fill a form field with text.',
+      parameters: {
+        type: 'object',
+        properties: {
+          url: { type: 'string', description: 'Page URL' },
+          selector: { type: 'string', description: 'CSS selector of input field' },
+          value: { type: 'string', description: 'Text to fill' }
+        },
+        required: ['url', 'selector', 'value']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'browser_screenshot',
+      description: 'Take a screenshot of a web page.',
+      parameters: {
+        type: 'object',
+        properties: {
+          url: { type: 'string', description: 'Page URL' },
+          outputPath: { type: 'string', description: 'Output file path' },
+          fullPage: { type: 'boolean', description: 'Capture full page (default: true)' }
+        },
+        required: ['url']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'browser_close',
+      description: 'Close the browser instance and free resources.',
+      parameters: {
+        type: 'object',
+        properties: {}
+      }
+    }
+  },
+  // ─── Multi-Agent Tools ───
+  {
+    type: 'function',
+    function: {
+      name: 'agent_create_team',
+      description: 'Create a team of AI agents for collaborative tasks.',
+      parameters: {
+        type: 'object',
+        properties: {
+          team_id: { type: 'string', description: 'Unique team identifier' },
+          agents: {
+            type: 'array',
+            description: 'Array of agent definitions',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string', description: 'Agent ID' },
+                name: { type: 'string', description: 'Agent name' },
+                role: { type: 'string', description: 'Agent role (researcher, coder, reviewer, etc.)' },
+                system_prompt: { type: 'string', description: 'Agent system prompt' }
+              }
+            }
+          }
+        },
+        required: ['team_id', 'agents']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'agent_assign_task',
+      description: 'Assign a task to a specific agent in a team.',
+      parameters: {
+        type: 'object',
+        properties: {
+          team_id: { type: 'string', description: 'Team identifier' },
+          agent_id: { type: 'string', description: 'Agent identifier' },
+          task: { type: 'string', description: 'Task description' }
+        },
+        required: ['team_id', 'agent_id', 'task']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'agent_get_team_status',
+      description: 'Get the status and results of all agents in a team.',
+      parameters: {
+        type: 'object',
+        properties: {
+          team_id: { type: 'string', description: 'Team identifier' }
+        },
+        required: ['team_id']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'agent_delete_team',
+      description: 'Delete an agent team and free resources.',
+      parameters: {
+        type: 'object',
+        properties: {
+          team_id: { type: 'string', description: 'Team identifier' }
+        },
+        required: ['team_id']
+      }
+    }
+  },
+  // ─── Scheduler Tools ───
+  {
+    type: 'function',
+    function: {
+      name: 'scheduler_schedule',
+      description: 'Schedule a task to run at a specific time or interval.',
+      parameters: {
+        type: 'object',
+        properties: {
+          task_id: { type: 'string', description: 'Unique task identifier' },
+          schedule: { type: 'string', description: 'Schedule (cron expression or interval in ms)' },
+          type: { type: 'string', enum: ['once', 'interval', 'cron'], description: 'Schedule type' },
+          payload: {
+            type: 'object',
+            properties: {
+              command: { type: 'string', description: 'Shell command to execute' }
+            }
+          }
+        },
+        required: ['task_id', 'schedule', 'type', 'payload']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'scheduler_get_status',
+      description: 'Get the status of a scheduled task.',
+      parameters: {
+        type: 'object',
+        properties: {
+          task_id: { type: 'string', description: 'Task identifier' }
+        },
+        required: ['task_id']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'scheduler_cancel',
+      description: 'Cancel a scheduled task.',
+      parameters: {
+        type: 'object',
+        properties: {
+          task_id: { type: 'string', description: 'Task identifier' }
+        },
+        required: ['task_id']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'scheduler_list',
+      description: 'List all scheduled tasks.',
+      parameters: {
+        type: 'object',
+        properties: {}
+      }
+    }
+  },
   // ─── Computer Control Tools ───
   {
     type: 'function',
@@ -231,11 +602,122 @@ const AGENT_TOOLS = [
       }
     }
   },
+  // ─── Plugin Market Tools ───
   {
     type: 'function',
     function: {
-      name: 'click',
-      description: 'Click the mouse at the specified screen coordinates. Supports left, right, and middle buttons, as well as double-click.',
+      name: 'plugin_install',
+      description: 'Install a plugin from a local path or URL.',
+      parameters: {
+        type: 'object',
+        properties: {
+          plugin_id: { type: 'string', description: 'Unique plugin identifier' },
+          source: { type: 'string', description: 'Local path or URL to plugin' }
+        },
+        required: ['plugin_id', 'source']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'plugin_list',
+      description: 'List all installed plugins.',
+      parameters: {
+        type: 'object',
+        properties: {}
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'plugin_uninstall',
+      description: 'Uninstall a plugin.',
+      parameters: {
+        type: 'object',
+        properties: {
+          plugin_id: { type: 'string', description: 'Plugin identifier' }
+        },
+        required: ['plugin_id']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'plugin_get_info',
+      description: 'Get detailed information about a plugin.',
+      parameters: {
+        type: 'object',
+        properties: {
+          plugin_id: { type: 'string', description: 'Plugin identifier' }
+        },
+        required: ['plugin_id']
+      }
+    }
+  },
+  // ─── Built-in MCP Plugin Tools ───
+  {
+    type: 'function',
+    function: {
+      name: 'plugin_list_builtin',
+      description: 'List all built-in MCP plugins with their status (enabled/disabled) and categories.',
+      parameters: {
+        type: 'object',
+        properties: {
+          filter: { type: 'string', description: 'Filter: "all", "enabled", or "disabled"', enum: ['all', 'enabled', 'disabled'] }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'plugin_execute',
+      description: 'Execute a specific action on a built-in MCP plugin. Supports 30+ plugins across browser automation, cloud, search, code intelligence, data science, design, monitoring, collaboration, dev tools, finance, and document processing categories.',
+      parameters: {
+        type: 'object',
+        properties: {
+          plugin_id: { type: 'string', description: 'Plugin identifier (e.g., "brave-search", "coincap", "sentry", "figma", "slack", "docker", "ip-info")' },
+          action: { type: 'string', description: 'Action to perform on the plugin. Depends on plugin type.' },
+          args: { type: 'object', description: 'Additional arguments for the action (e.g., query, url, asset, ip, etc.)' }
+        },
+        required: ['plugin_id', 'action']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'plugin_get_enabled_summary',
+      description: 'Get a summary of all enabled MCP plugins grouped by category.',
+      parameters: {
+        type: 'object',
+        properties: {}
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'plugin_toggle',
+      description: 'Enable or disable a built-in MCP plugin.',
+      parameters: {
+        type: 'object',
+        properties: {
+          plugin_id: { type: 'string', description: 'Plugin identifier' },
+          enabled: { type: 'boolean', description: 'Whether to enable the plugin' }
+        },
+        required: ['plugin_id', 'enabled']
+      }
+    }
+  },
+  // ─── Computer Control Tools ───
+  {
+    type: 'function',
+    function: {
+      name: 'screenshot',
       parameters: {
         type: 'object',
         properties: {
@@ -619,15 +1101,18 @@ const App = {
   // ─── SETTINGS TABS ───
   settingsTab(tab) {
     document.querySelectorAll('.s-tab').forEach((el, i) => {
-      el.classList.toggle('active', ['model','general','agent','memory','skills'][i] === tab);
+      el.classList.toggle('active', ['model','general','agent','memory','skills','plugins','tools'][i] === tab);
     });
     document.getElementById('panel-model').style.display = tab === 'model' ? '' : 'none';
     document.getElementById('panel-general').style.display = tab === 'general' ? '' : 'none';
     document.getElementById('panel-agent').style.display = tab === 'agent' ? '' : 'none';
     document.getElementById('panel-memory').style.display = tab === 'memory' ? '' : 'none';
     document.getElementById('panel-skills').style.display = tab === 'skills' ? '' : 'none';
+    document.getElementById('panel-plugins').style.display = tab === 'plugins' ? '' : 'none';
+    document.getElementById('panel-tools').style.display = tab === 'tools' ? '' : 'none';
     if (tab === 'memory') this.renderMemoryList();
     if (tab === 'skills') this.renderSkillsList();
+    if (tab === 'plugins') this.renderPluginsList();
   },
 
   // ─── MODEL LIST ───
@@ -1549,6 +2034,50 @@ const App = {
           result = { success: r.success, output: r.success ? `已滚动 at (${args.x}, ${args.y}) delta: (${args.deltaX || 0}, ${args.deltaY || -300})` : r.error };
           break;
         }
+        // ─── Built-in MCP Plugin Tools ───
+        case 'plugin_list_builtin': {
+          const r = await API.pluginsGetBuiltin();
+          if (r.success) {
+            const filter = args.filter || 'all';
+            let plugins = r.plugins;
+            if (filter === 'enabled') plugins = plugins.filter(p => p.enabled);
+            if (filter === 'disabled') plugins = plugins.filter(p => !p.enabled);
+            const categories = {};
+            for (const p of plugins) {
+              if (!categories[p.category]) categories[p.category] = [];
+              categories[p.category].push(`${p.name} [${p.enabled ? '✅启用' : '❌禁用'}]`);
+            }
+            const output = Object.entries(categories)
+              .map(([cat, items]) => `【${cat}】\n  ${items.join('\n  ')}`)
+              .join('\n\n');
+            result = { success: true, output: `内置MCP插件 (共${r.plugins.length}个，已启用${r.plugins.filter(p=>p.enabled).length}个):\n\n${output}` };
+          } else { result = { success: false, output: r.error }; }
+          break;
+        }
+        case 'plugin_execute': {
+          const r = await API.pluginExecute(args.plugin_id, args.action, args.args || {});
+          if (r.success) {
+            result = { success: true, output: JSON.stringify(r, null, 2) };
+          } else { result = { success: false, output: r.error || '插件执行失败' }; }
+          break;
+        }
+        case 'plugin_get_enabled_summary': {
+          const r = await API.pluginsGetEnabledSummary();
+          if (r.success) {
+            const lines = Object.entries(r.byCategory)
+              .map(([cat, names]) => `  ${cat}: ${names.join(', ')}`)
+              .join('\n');
+            result = { success: true, output: `MCP插件状态 (已启用 ${r.enabled}/${r.total}):\n${lines}` };
+          } else { result = { success: false, output: r.error }; }
+          break;
+        }
+        case 'plugin_toggle': {
+          const r = await API.pluginsToggle(args.plugin_id, args.enabled);
+          if (r.success) {
+            result = { success: true, output: `插件 "${r.plugin.name}" 已${args.enabled ? '启用' : '禁用'}` };
+          } else { result = { success: false, output: r.error || '操作失败' }; }
+          break;
+        }
         default:
           result = { success: false, output: '未知工具: ' + tc.name };
       }
@@ -1894,6 +2423,88 @@ const App = {
     } else this.toast('卸载失败: ' + r.error, 'err');
   },
 
+  // ─── MCP PLUGINS ───
+  _pluginsFilter: 'all',
+
+  async renderPluginsList() {
+    if (!API) return;
+    const container = document.getElementById('plugins-list');
+    if (!container) return;
+    container.innerHTML = '<div style="color:var(--text-3);font-size:12px">加载中...</div>';
+    try {
+      const r = await API.pluginsGetBuiltin();
+      if (!r.success) { container.innerHTML = '<div style="color:var(--text-3);font-size:12px">加载失败</div>'; return; }
+      
+      // Update counts
+      const total = r.plugins.length;
+      const enabled = r.plugins.filter(p => p.enabled).length;
+      const totalEl = document.getElementById('plugin-total-count');
+      const enabledEl = document.getElementById('plugin-enabled-count');
+      if (totalEl) totalEl.textContent = total;
+      if (enabledEl) enabledEl.textContent = enabled;
+      
+      // Group by category
+      const categories = {};
+      for (const p of r.plugins) {
+        if (this._pluginsFilter === 'enabled' && !p.enabled) continue;
+        if (this._pluginsFilter === 'disabled' && p.enabled) continue;
+        if (!categories[p.category]) categories[p.category] = [];
+        categories[p.category].push(p);
+      }
+      
+      let html = '';
+      for (const [cat, plugins] of Object.entries(categories)) {
+        const catIcons = {
+          '文件操作': '📁', '版本控制': '🔀', '网络': '🌐', '记忆': '🧠', '推理': '💭',
+          '工具': '🔧', '数据': '🗄️', '通信': '💬', '效率': '⚡', '信息': 'ℹ️',
+          '浏览器自动化': '🌍', '云平台': '☁️', '搜索': '🔍', '代码智能': '💻',
+          '数据科学': '📊', '设计': '🎨', '监控': '📈', '协作': '🤝',
+          '开发者工具': '🛠️', '金融': '💰', '位置服务': '📍', '文档处理': '📝'
+        };
+        const icon = catIcons[cat] || '📦';
+        html += `<div style="margin-bottom:12px">
+          <div style="font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:6px;padding:0 4px">${icon} ${cat} (${plugins.length})</div>`;
+        for (const p of plugins) {
+          const isEnabled = p.enabled;
+          html += `
+            <div class="ml-item" style="padding:8px 12px">
+              <div class="ml-info" style="flex:1">
+                <div class="ml-name" style="font-size:12px">
+                  ${this.esc(p.name)}
+                  ${p.stars ? `<span style="font-size:10px;color:var(--text-3);font-weight:400;margin-left:4px">${this.esc(p.stars)}</span>` : ''}
+                </div>
+                <div style="font-size:10px;color:var(--text-3);margin-top:2px;line-height:1.4">${this.esc(p.description.slice(0, 120))}</div>
+                ${p.github ? `<div style="font-size:9px;color:var(--accent);margin-top:2px;font-family:var(--mono)">${this.esc(p.github)}</div>` : ''}
+              </div>
+              <label class="plugin-toggle" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:0;margin-left:8px">
+                <input type="checkbox" ${isEnabled ? 'checked' : ''} onchange="App.togglePlugin('${p.id}', this.checked)" style="width:auto;cursor:pointer">
+                <span style="font-size:10px;color:${isEnabled ? 'var(--green)' : 'var(--text-3)'}">${isEnabled ? '启用' : '禁用'}</span>
+              </label>
+            </div>`;
+        }
+        html += '</div>';
+      }
+      container.innerHTML = html;
+    } catch (e) {
+      container.innerHTML = '<div style="color:var(--text-3);font-size:12px">加载失败</div>';
+    }
+  },
+
+  async togglePlugin(pluginId, enabled) {
+    if (!API) return;
+    const r = await API.pluginsToggle(pluginId, enabled);
+    if (r.success) {
+      this.toast(`已${enabled ? '启用' : '禁用'}插件: ${r.plugin.name}`, 'ok');
+      this.renderPluginsList();
+    } else {
+      this.toast('操作失败: ' + (r.error || '未知错误'), 'err');
+    }
+  },
+
+  pluginsFilterAll() { this._pluginsFilter = 'all'; this.renderPluginsList(); },
+  pluginsFilterEnabled() { this._pluginsFilter = 'enabled'; this.renderPluginsList(); },
+  pluginsFilterDisabled() { this._pluginsFilter = 'disabled'; this.renderPluginsList(); },
+
   // ─── SETTINGS ───
   openSettings() {
     this.renderModelList();
@@ -1907,6 +2518,7 @@ const App = {
     document.getElementById('cfg-compress').checked = this.config.compressTools !== false;
     document.getElementById('cfg-enable-memory').checked = this.config.enableMemory !== false;
     document.getElementById('cfg-enable-skills').checked = this.config.enableSkills !== false;
+    document.getElementById('cfg-enable-plugins').checked = this.config.enablePlugins !== false;
     document.getElementById('cfg-caveman').checked = this.config.cavemanMode === true;
     document.getElementById('cfg-caveman-level').value = this.config.cavemanLevel || 'full';
     document.getElementById('cfg-computer-control').checked = this.config.computerControl === true;
@@ -1941,6 +2553,7 @@ const App = {
     this.config.compressTools = document.getElementById('cfg-compress').checked;
     this.config.enableMemory = document.getElementById('cfg-enable-memory').checked;
     this.config.enableSkills = document.getElementById('cfg-enable-skills').checked;
+    this.config.enablePlugins = document.getElementById('cfg-enable-plugins').checked;
     this.config.cavemanMode = document.getElementById('cfg-caveman').checked;
     this.config.cavemanLevel = document.getElementById('cfg-caveman-level').value;
     this.config.computerControl = document.getElementById('cfg-computer-control').checked;
