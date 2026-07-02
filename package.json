@@ -1,6 +1,6 @@
 {
   "name": "kk-buddy-desktop",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "KK-Buddy Desktop - Universal AI Coding Assistant",
   "main": "main.js",
   "scripts": {
@@ -12,7 +12,7 @@
   "author": "Schvinkk",
   "license": "MIT",
   "devDependencies": {
-    "electron": "35.7.5",
+    "electron": "^35.7.5",
     "electron-builder": "^25.1.8"
   },
   "build": {
@@ -53,5 +53,13 @@
   },
   "allowScripts": {
     "electron@35.7.5": true
+  },
+  "dependencies": {
+    "docx": "^9.7.1",
+    "exceljs": "^4.4.0",
+    "pdfkit": "^0.19.1",
+    "playwright": "^1.61.1",
+    "pptxgenjs": "^4.0.1",
+    "sharp": "^0.35.3"
   }
 }
