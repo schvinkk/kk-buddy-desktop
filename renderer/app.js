@@ -959,6 +959,11 @@ const App = {
       const idMap = { 'gpt-4o': 'gpt-4.1', 'deepseek-chat': 'deepseek-v4-pro', 'deepseek-reasoner': 'deepseek-v4-flash', 'moonshot-v1-auto': 'kimi-k2.6', 'glm-4-plus': 'glm-5' };
       if (idMap[m.id]) { m.id = idMap[m.id]; migrated = true; }
       if (nameMap[m.id]) { m.name = nameMap[m.id]; }
+      // Migrate deprecated API URLs (MiMo localhost → cloud)
+      if (m.url === 'http://127.0.0.1:9876/v1' || m.url === 'http://localhost:9876/v1') {
+        m.url = 'https://api.xiaomimimo.com/v1';
+        migrated = true;
+      }
     });
     if (migrated) this.saveCustomModels();
   },

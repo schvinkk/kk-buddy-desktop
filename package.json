@@ -1,6 +1,6 @@
 {
   "name": "kk-buddy-desktop",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "KK-Buddy Desktop - Universal AI Coding Assistant",
   "main": "main.js",
   "scripts": {
