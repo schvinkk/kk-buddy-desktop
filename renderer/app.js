@@ -717,7 +717,8 @@ const AGENT_TOOLS = [
   {
     type: 'function',
     function: {
-      name: 'screenshot',
+      name: 'click',
+      description: 'Simulate a mouse click at specific screen coordinates. Supports left, right, middle buttons and double-click. Use after screenshot to identify target coordinates.',
       parameters: {
         type: 'object',
         properties: {
@@ -926,7 +927,7 @@ const App = {
     // Migrate old config: if baseUrl/apiKey exist at top level, create a model entry
     const oldCfg = JSON.parse(localStorage.getItem('cdx_cfg') || '{}');
     if (oldCfg.baseUrl && !this.customModels.length) {
-      this.customModels = [{ id: oldCfg.model || 'mimo-v2.5', name: 'MiMo v2.5', url: oldCfg.baseUrl, key: oldCfg.apiKey || 'mimo2codex-local', api: 'chat' }];
+      this.customModels = [{ id: oldCfg.model || 'mimo-v2.5', name: 'MiMo v2.5', url: oldCfg.baseUrl, key: oldCfg.apiKey || '', api: 'chat' }];
       this.saveCustomModels();
     }
     // Migrate deprecated model IDs (2026-06)
@@ -2083,6 +2084,146 @@ const App = {
           } else { result = { success: false, output: r.error || '操作失败' }; }
           break;
         }
+        // ─── File Generation Tools ───
+        case 'generate_docx': {
+          const r = await API.generateDocx(args.title || 'document', args.sections || [], args.output_path);
+          result = r.success ? { success: true, output: `Word 文档已生成: ${r.path} (${(r.size / 1024).toFixed(1)} KB)` } : { success: false, output: r.error };
+          break;
+        }
+        case 'generate_pptx': {
+          const r = await API.generatePptx(args.title || 'presentation', args.slides || [], args.output_path, args.theme);
+          result = r.success ? { success: true, output: `PPT 已生成: ${r.path} (${r.slideCount} 页, ${(r.size / 1024).toFixed(1)} KB)` } : { success: false, output: r.error };
+          break;
+        }
+        case 'generate_pdf': {
+          const r = await API.generatePdf(args.title || 'document', args.content || '', args.output_path, args.options);
+          result = r.success ? { success: true, output: `PDF 已生成: ${r.path} (${(r.size / 1024).toFixed(1)} KB)` } : { success: false, output: r.error };
+          break;
+        }
+        case 'generate_excel': {
+          const r = await API.generateExcel(args.title || 'spreadsheet', args.sheets || [], args.output_path);
+          result = r.success ? { success: true, output: `Excel 已生成: ${r.path} (${(r.size / 1024).toFixed(1)} KB)` } : { success: false, output: r.error };
+          break;
+        }
+        case 'generate_mermaid': {
+          const r = await API.generateMermaid(args.code || '', args.output_path, args.theme);
+          result = r.success ? { success: true, output: `Mermaid 图表已生成: ${r.path}` } : { success: false, output: r.error };
+          break;
+        }
+        // ─── Browser Automation Tools ───
+        case 'browser_launch': {
+          const r = await API.browserLaunch({ headless: args.headless !== false });
+          result = r.success ? { success: true, output: '浏览器已启动' } : { success: false, output: r.error };
+          break;
+        }
+        case 'browser_navigate': {
+          const r = await API.browserNavigate(args.url, args.wait_until || 'domcontentloaded');
+          result = r.success ? { success: true, output: `已导航到: ${args.url}\n页面标题: ${r.title}` } : { success: false, output: r.error };
+          break;
+        }
+        case 'browser_get_content': {
+          const r = await API.browserGetContent(args.url, args.selector);
+          result = r.success ? { success: true, output: this._compressOutput(r.content, 300) } : { success: false, output: r.error };
+          break;
+        }
+        case 'browser_click': {
+          const r = await API.browserClick(args.url, args.selector);
+          result = r.success ? { success: true, output: `已点击: ${args.selector}` } : { success: false, output: r.error };
+          break;
+        }
+        case 'browser_fill': {
+          const r = await API.browserFill(args.url, args.selector, args.value);
+          result = r.success ? { success: true, output: `已填写: ${args.selector} = ${args.value}` } : { success: false, output: r.error };
+          break;
+        }
+        case 'browser_screenshot': {
+          const r = await API.browserScreenshot(args.url, args.output_path, args.full_page !== false);
+          result = r.success ? { success: true, output: `浏览器截图已保存: ${r.path}` } : { success: false, output: r.error };
+          break;
+        }
+        case 'browser_close': {
+          const r = await API.browserClose();
+          result = r.success ? { success: true, output: '浏览器已关闭' } : { success: false, output: r.error };
+          break;
+        }
+        // ─── Multi-Agent Tools ───
+        case 'agent_create_team': {
+          const r = await API.agentCreateTeam(args.team_id, args.agents || []);
+          result = r.success ? { success: true, output: `团队 "${args.team_id}" 已创建，共 ${args.agents.length} 个 Agent` } : { success: false, output: r.error };
+          break;
+        }
+        case 'agent_assign_task': {
+          const r = await API.agentAssignTask(args.team_id, args.agent_id, args.task);
+          result = r.success ? { success: true, output: `Agent "${args.agent_id}" 完成任务:\n${r.result}` } : { success: false, output: r.error };
+          break;
+        }
+        case 'agent_get_team_status': {
+          const r = await API.agentGetTeamStatus(args.team_id);
+          if (r.success) {
+            const lines = r.agents.map(a => `  ${a.name} [${a.role}]: ${a.status}${a.result ? ' → ' + a.result.slice(0, 100) : ''}`);
+            result = { success: true, output: `团队 "${args.team_id}" 状态: ${r.status}\n${lines.join('\n')}` };
+          } else { result = { success: false, output: r.error }; }
+          break;
+        }
+        case 'agent_delete_team': {
+          const r = await API.agentDeleteTeam(args.team_id);
+          result = r.success ? { success: true, output: `团队 "${args.team_id}" 已删除` } : { success: false, output: r.error };
+          break;
+        }
+        // ─── Scheduler Tools ───
+        case 'scheduler_schedule': {
+          const r = await API.schedulerSchedule(args.task_id, args.schedule, args.type || 'once', args.payload || {});
+          result = r.success ? { success: true, output: `定时任务已创建: ${r.taskId} (${args.type || 'once'})` } : { success: false, output: r.error };
+          break;
+        }
+        case 'scheduler_get_status': {
+          const r = await API.schedulerGetStatus(args.task_id);
+          if (r.success) {
+            result = { success: true, output: `任务 ${args.task_id}: ${r.status}, 上次运行: ${r.lastRun ? new Date(r.lastRun).toLocaleString() : '无'}` };
+          } else { result = { success: false, output: r.error }; }
+          break;
+        }
+        case 'scheduler_cancel': {
+          const r = await API.schedulerCancel(args.task_id);
+          result = r.success ? { success: true, output: `任务 ${args.task_id} 已取消` } : { success: false, output: r.error };
+          break;
+        }
+        case 'scheduler_list': {
+          const r = await API.schedulerList();
+          if (r.success) {
+            if (!r.tasks.length) { result = { success: true, output: '无定时任务' }; break; }
+            const lines = r.tasks.map(t => `  ${t.id}: ${t.type} [${t.status}]`);
+            result = { success: true, output: `共 ${r.tasks.length} 个定时任务:\n${lines.join('\n')}` };
+          } else { result = { success: false, output: r.error }; }
+          break;
+        }
+        // ─── Plugin Market Tools ───
+        case 'plugin_install': {
+          const r = await API.pluginInstall(args.plugin_id, args.source);
+          result = r.success ? { success: true, output: `插件已安装: ${args.plugin_id}` } : { success: false, output: r.error };
+          break;
+        }
+        case 'plugin_list': {
+          const r = await API.pluginList();
+          if (r.success) {
+            if (!r.plugins.length) { result = { success: true, output: '未安装任何插件' }; break; }
+            const lines = r.plugins.map(p => `  ${p.name} v${p.version}: ${p.description}`);
+            result = { success: true, output: `已安装 ${r.plugins.length} 个插件:\n${lines.join('\n')}` };
+          } else { result = { success: false, output: r.error }; }
+          break;
+        }
+        case 'plugin_uninstall': {
+          const r = await API.pluginUninstall(args.plugin_id);
+          result = r.success ? { success: true, output: `插件已卸载: ${args.plugin_id}` } : { success: false, output: r.error };
+          break;
+        }
+        case 'plugin_get_info': {
+          const r = await API.pluginGetInfo(args.plugin_id);
+          if (r.success) {
+            result = { success: true, output: JSON.stringify(r.plugin, null, 2) };
+          } else { result = { success: false, output: r.error }; }
+          break;
+        }
         default:
           result = { success: false, output: '未知工具: ' + tc.name };
       }
@@ -2776,7 +2917,7 @@ const App = {
       conv.messages.splice(cutIdx);
       this.saveConvs();
     }
-    this.autoResize();
+    this.autoResize(document.getElementById('msg-input'));
   },
 
   esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; },

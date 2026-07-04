@@ -383,7 +383,7 @@
             <input type="checkbox" id="cfg-enable-plugins" checked style="width:auto">
             启用 MCP 插件系统
           </label>
-          <div class="hint">开启后AI可调用内置MCP插件。共 <span id="plugin-total-count">40</span> 个内置插件，<span id="plugin-enabled-count">40</span> 个已启用</div>
+          <div class="hint">开启后AI可调用内置MCP插件。共 <span id="plugin-total-count">38</span> 个内置插件，<span id="plugin-enabled-count">38</span> 个已启用</div>
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px">
           <span style="font-size:13px;font-weight:600;color:var(--text-2)">内置 MCP 插件</span>
@@ -409,11 +409,13 @@
           </div>
         </div>
         <div style="padding:12px;background:var(--bg-3);border-radius:var(--radius);border:1px solid var(--border-1);margin-bottom:12px">
-          <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">💻 代码执行工具</div>
+          <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">💻 代码执行与文件工具</div>
           <div style="font-size:12px;color:var(--text-3);line-height:2">
             <div>🔧 <strong style="color:var(--text-2)">shell</strong> — 执行 Shell 命令</div>
-            <div>📦 <strong style="color:var(--text-2)">npm_install</strong> — 安装 npm 包</div>
-            <div>🚀 <strong style="color:var(--text-2)">run_script</strong> — 运行 Node.js 脚本</div>
+            <div>📖 <strong style="color:var(--text-2)">read_file</strong> — 读取文件内容</div>
+            <div>✏️ <strong style="color:var(--text-2)">write_file</strong> — 写入文件</div>
+            <div>🔍 <strong style="color:var(--text-2)">grep_search</strong> — 搜索文件内容</div>
+            <div>📂 <strong style="color:var(--text-2)">list_directory</strong> — 列出目录内容</div>
           </div>
         </div>
         <div style="padding:12px;background:var(--bg-3);border-radius:var(--radius);border:1px solid var(--border-1)">
@@ -421,7 +423,7 @@
           <div style="font-size:12px;color:var(--text-3);line-height:2">
             <div>🔍 <strong style="color:var(--text-2)">web_search</strong> — 网络搜索</div>
             <div>🌐 <strong style="color:var(--text-2)">web_fetch</strong> — 抓取网页内容</div>
-            <div>📡 <strong style="color:var(--text-2)">api_call</strong> — 调用 REST API</div>
+            <div>🧠 <strong style="color:var(--text-2)">memory_write / memory_search</strong> — 记忆读写</div>
           </div>
         </div>
       </div>
