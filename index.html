@@ -99,6 +99,13 @@
         <span id="badge-model-name">自定义大模型</span>
       </button>
       <div class="tb-actions">
+        <button class="theme-toggle" onclick="App.toggleTheme()" title="切换暗色/亮色模式 (Ctrl+Shift+T)">
+          <svg id="theme-icon-light" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg id="theme-icon-dark" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+        </button>
+        <button onclick="App.toggleChatSearch()" title="搜索对话内容 (Ctrl+F)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
         <button onclick="App.exportChat()" title="导出对话">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         </button>
@@ -115,10 +122,24 @@
       <button class="route-btn" data-mode="precise" onclick="App.setRouteMode('precise')">🎯 精确</button>
     </div>
 
+    <!-- In-conversation search bar -->
+    <div id="chat-search-bar">
+      <input type="text" id="chat-search-input" placeholder="搜索对话内容..." onkeydown="if(event.key==='Enter'){event.preventDefault();App.searchNext();}" oninput="App.searchInChat(this.value)">
+      <span class="search-count" id="search-count"></span>
+      <button onclick="App.searchPrev()" title="上一个">▲</button>
+      <button onclick="App.searchNext()" title="下一个">▼</button>
+      <button onclick="App.toggleChatSearch()" title="关闭">✕</button>
+    </div>
+
     <!-- Content area (chat / settings / projects) -->
     <div id="chat-area">
       <div id="chat-inner"></div>
     </div>
+
+    <!-- Scroll to bottom button -->
+    <button id="scroll-bottom-btn" onclick="App.forceScrollBottom()" title="滚动到底部">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
 
     <!-- Input -->
     <div id="input-area">
@@ -144,7 +165,7 @@
           </div>
         </div>
         <div class="input-hints">
-          <span>Ctrl+B 切换侧栏 · Ctrl+N 新对话 · Ctrl+E 导出</span>
+          <span>Ctrl+B 侧栏 · Ctrl+N 新对话 · Ctrl+F 搜索 · Ctrl+E 导出 · Ctrl+Shift+T 暗色模式</span>
           <span id="token-info"></span>
         </div>
       </div>

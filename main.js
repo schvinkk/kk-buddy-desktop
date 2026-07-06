@@ -423,7 +423,7 @@ ipcMain.handle('web:fetch', async (_, { url, maxLen }) => {
   return new Promise((resolve) => {
     try {
       const client = url.startsWith('https') ? https : http;
-      const req = client.get(url, { headers: { 'User-Agent': 'KK-Buddy/2.3.0' }, timeout: 15000 }, (res) => {
+      const req = client.get(url, { headers: { 'User-Agent': 'KK-Buddy/2.4.0' }, timeout: 15000 }, (res) => {
         if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
           // Follow one redirect
           const redirectUrl = res.headers.location.startsWith('http') ? res.headers.location : new URL(res.headers.location, url).href;

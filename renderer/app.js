@@ -837,6 +837,9 @@ const App = {
     this.loadConfig();
     this.loadCustomModels();
     this.loadConvs();
+    this.loadTheme();
+    this.loadFontSize();
+    this._sessionTokens = { prompt: 0, completion: 0 };
     this.renderConvList();
     this.updateModelBadge();
     this.updateProjectDisplay();
@@ -856,8 +859,28 @@ const App = {
       if (e.ctrlKey && e.key === 'n') { e.preventDefault(); this.newChat(); }
       if (e.ctrlKey && e.key === 'e') { e.preventDefault(); this.exportChat(); }
       if (e.ctrlKey && e.key === ',') { e.preventDefault(); this.openSettings(); }
-      if (e.key === 'Escape' && this.isStreaming) this.stopGen();
+      if (e.ctrlKey && e.key === 'f') { e.preventDefault(); this.toggleChatSearch(); }
+      if (e.ctrlKey && e.shiftKey && (e.key === 't' || e.key === 'T')) { e.preventDefault(); this.toggleTheme(); }
+      // Font size: Ctrl+= zoom in, Ctrl+- zoom out, Ctrl+0 reset
+      if (e.ctrlKey && (e.key === '=' || e.key === '+')) { e.preventDefault(); this.adjustFontSize(1); }
+      if (e.ctrlKey && e.key === '-') { e.preventDefault(); this.adjustFontSize(-1); }
+      if (e.ctrlKey && e.key === '0') { e.preventDefault(); this.adjustFontSize(0); }
+      if (e.key === 'Escape') {
+        if (this.isStreaming) this.stopGen();
+        const searchBar = document.getElementById('chat-search-bar');
+        if (searchBar && searchBar.classList.contains('visible')) this.toggleChatSearch();
+      }
     });
+    // Scroll event for scroll-to-bottom button
+    const chatArea = document.getElementById('chat-area');
+    if (chatArea) {
+      chatArea.addEventListener('scroll', () => {
+        const btn = document.getElementById('scroll-bottom-btn');
+        if (!btn) return;
+        const isNearBottom = chatArea.scrollHeight - chatArea.scrollTop - chatArea.clientHeight < 120;
+        btn.classList.toggle('visible', !isNearBottom && this.isStreaming);
+      });
+    }
   },
 
   setupDragDrop() {
@@ -1063,7 +1086,7 @@ const App = {
     list.innerHTML = '';
     const filtered = this.searchQuery
       ? this.conversations.filter(c => c.title.toLowerCase().includes(this.searchQuery) || c.messages.some(m => m.content?.toLowerCase().includes(this.searchQuery)))
-      : this.conversations;
+      : [...this.conversations].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
 
     if (filtered.length === 0) {
       list.innerHTML = '<li style="padding:16px;text-align:center;color:var(--text-3);font-size:12px">暂无对话</li>';
@@ -1095,7 +1118,7 @@ const App = {
       li.className = 'conv-item' + (c.id === this.currentId ? ' active' : '');
       li.onclick = () => this.switchConv(c.id);
       const timeStr = new Date(c.createdAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-      li.innerHTML = `<span class="ci-title">${this.esc(c.title)}</span><span class="ci-time">${timeStr}</span><span class="ci-del" onclick="App.deleteConv('${c.id}',event)" title="删除">&times;</span>`;
+      li.innerHTML = `<span class="ci-pin${c.pinned ? ' pinned' : ''}" onclick="App.togglePin('${c.id}',event)" title="${c.pinned ? '取消置顶' : '置顶'}">📌</span><span class="ci-title">${this.esc(c.title)}</span><span class="ci-time">${timeStr}</span><span class="ci-del" onclick="App.deleteConv('${c.id}',event)" title="删除">&times;</span>`;
       li.querySelector('.ci-title').addEventListener('dblclick', (e) => {
         e.stopPropagation();
         this.startRenameConv(c.id, e.currentTarget);
@@ -1360,7 +1383,7 @@ const App = {
       if (lines.length > 1 && lines[lines.length - 1].trim() === '') lines.pop();
       const lineNums = lines.map((_, i) => i + 1).join('\n');
       const highlighted = this.highlightCode(lines.join('\n'), l);
-      return `<div class="code-block"><div class="code-head"><span class="code-lang">${l}</span><button class="code-copy" onclick="App.copyCode(this)">复制</button></div><div class="code-inner"><span class="line-numbers">${lineNums}</span><pre><code>${highlighted}</code></pre></div></div>`;
+      return `<div class="code-block"><div class="code-head"><span class="code-lang">${l}</span><div class="code-actions"><button class="code-copy" onclick="App.copyCode(this)">复制</button><button class="code-apply" onclick="App.applyCode(this)">应用到文件</button></div></div><div class="code-inner"><span class="line-numbers">${lineNums}</span><pre><code>${highlighted}</code></pre></div></div>`;
     });
     // Inline code
     h = h.replace(/`([^`\n]+)`/g, '<code>$1</code>');
@@ -1669,6 +1692,7 @@ const App = {
         conv.messages.push(finalMsg);
         this.appendMsg('assistant', result.text, result.reasoning, result.toolCalls);
         this.saveConvs();
+        this.playNotifSound();
         break;
 
       } catch (err) {
@@ -1676,6 +1700,18 @@ const App = {
         if (err.name === 'AbortError') {
           this.appendMsg('assistant', '_已停止生成_', null);
         } else {
+          // Auto-retry for transient errors (429, 5xx, network)
+          const isTransient = /429|500|502|503|504|fetch|network|timeout|ECONNREFUSED|ECONNRESET/i.test(err.message);
+          if (isTransient && turn < maxTurns - 1 && this.isStreaming) {
+            const retryDelay = Math.min(5000, 1000 * (turn + 1));
+            this.removeTyping();
+            this.showTyping();
+            const typingEl = document.querySelector('.typing')?.closest('.msg');
+            if (typingEl) typingEl.querySelector('.msg-text').innerHTML = `<span style="color:var(--orange);font-size:12px">⏳ 请求失败 (${err.message.slice(0, 50)})，${retryDelay / 1000}s 后自动重试...</span>`;
+            await new Promise(r => setTimeout(r, retryDelay));
+            this.removeTyping();
+            continue;
+          }
           const errDiv = this.appendMsg('assistant', '', null);
           errDiv.querySelector('.msg-text').innerHTML = `<span style="color:var(--red)">❌ ${this.esc(err.message)}</span><br><span style="color:var(--text-3);font-size:12px">请检查模型配置中的 API 地址和 Key 是否正确</span><br><button class="retry-btn" onclick="App.retrySend()">🔄 重试</button>`;
         }
@@ -1813,8 +1849,16 @@ const App = {
             // Usage-only chunk (last chunk with include_usage)
             if (chunk.usage) {
               const u = chunk.usage;
+              if (this._sessionTokens) {
+                this._sessionTokens.prompt += (u.prompt_tokens || 0);
+                this._sessionTokens.completion += (u.completion_tokens || 0);
+              }
               const el = document.getElementById('token-info');
-              if (el) el.textContent = `${u.prompt_tokens || 0} in · ${u.completion_tokens || 0} out`;
+              if (el && this._sessionTokens) {
+                const sp = this._sessionTokens.prompt;
+                const sc = this._sessionTokens.completion;
+                el.textContent = `${u.prompt_tokens || 0} in · ${u.completion_tokens || 0} out (会话累计: ${sp}/${sc})`;
+              }
             }
             continue;
           }
@@ -2427,6 +2471,12 @@ const App = {
     const conv = this.getConv(this.currentId);
     if (!conv || !conv.messages.length) { this.toast('没有可导出的对话', 'err'); return; }
 
+    const filters = [
+      { name: 'Markdown', extensions: ['md'] },
+      { name: 'HTML', extensions: ['html'] },
+      { name: 'JSON', extensions: ['json'] },
+    ];
+
     let md = `# ${conv.title}\n\n_导出时间: ${new Date().toLocaleString('zh-CN')}_\n\n---\n\n`;
     conv.messages.forEach(m => {
       if (m.role === 'user') md += `## 🧑 你\n\n${m.content}\n\n`;
@@ -2440,14 +2490,27 @@ const App = {
     });
 
     if (API) {
-      const fp = await API.saveFileDialog({ defaultPath: conv.title + '.md', filters: [{ name: 'Markdown', extensions: ['md'] }] });
-      if (fp) {
-        const r = await API.exportConversation(fp, md);
-        if (r.success) this.toast('对话已导出', 'ok');
-        else this.toast('导出失败: ' + r.error, 'err');
+      const fp = await API.saveFileDialog({ defaultPath: conv.title + '.md', filters });
+      if (!fp) return;
+      let content = md;
+      const ext = fp.split('.').pop().toLowerCase();
+      if (ext === 'html') {
+        content = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${this.esc(conv.title)}</title><style>body{font-family:system-ui;max-width:800px;margin:40px auto;padding:0 20px;line-height:1.6}h2{margin-top:24px}.tool{background:#f5f5f5;padding:8px;border-radius:4px;font-size:13px}details{margin:8px 0}</style></head><body>`;
+        content += `<h1>${this.esc(conv.title)}</h1><p><em>导出时间: ${new Date().toLocaleString('zh-CN')}</em></p><hr>`;
+        conv.messages.forEach(m => {
+          if (m.role === 'user') content += `<h2>🧑 你</h2><div>${this.esc(m.content || '').replace(/\n/g, '<br>')}</div>`;
+          else if (m.role === 'assistant') {
+            content += `<h2>⚡ KK-Buddy</h2><div>${this.md(m.content || '')}</div>`;
+          }
+        });
+        content += '</body></html>';
+      } else if (ext === 'json') {
+        content = JSON.stringify({ title: conv.title, exportedAt: new Date().toISOString(), messages: conv.messages }, null, 2);
       }
+      const r = await API.writeFile(fp, content);
+      if (r.success) this.toast('对话已导出: ' + fp, 'ok');
+      else this.toast('导出失败: ' + r.error, 'err');
     } else {
-      // Fallback: download
       const blob = new Blob([md], { type: 'text/markdown' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob); a.download = conv.title + '.md'; a.click();
@@ -2761,7 +2824,22 @@ const App = {
 
   scrollBottom() {
     const area = document.getElementById('chat-area');
+    if (!area) return;
+    const isNearBottom = area.scrollHeight - area.scrollTop - area.clientHeight < 120;
+    const btn = document.getElementById('scroll-bottom-btn');
+    if (!isNearBottom && this.isStreaming) {
+      if (btn) btn.classList.add('visible');
+      return;
+    }
+    if (btn) btn.classList.remove('visible');
     requestAnimationFrame(() => { area.scrollTop = area.scrollHeight; });
+  },
+
+  forceScrollBottom() {
+    const area = document.getElementById('chat-area');
+    if (area) { requestAnimationFrame(() => { area.scrollTop = area.scrollHeight; }); }
+    const btn = document.getElementById('scroll-bottom-btn');
+    if (btn) btn.classList.remove('visible');
   },
 
   copyText(text) {
@@ -2852,6 +2930,159 @@ const App = {
       btn.classList.add('copied');
       setTimeout(() => btn.classList.remove('copied'), 1500);
     });
+  },
+
+  // ─── APPLY CODE TO FILE ───
+  async applyCode(btn) {
+    const block = btn.closest('.code-block');
+    const code = block.querySelector('code').textContent;
+    if (!API) { this.toast('Electron API 不可用', 'err'); return; }
+    const fp = await API.saveFileDialog({ defaultPath: 'output.txt', filters: [{ name: 'All Files', extensions: ['*'] }] });
+    if (!fp) return;
+    const r = await API.writeFile(fp, code);
+    if (r.success) { btn.textContent = '已应用!'; btn.style.color = 'var(--green)'; setTimeout(() => { btn.textContent = '应用到文件'; btn.style.color = ''; }, 2000); this.toast('代码已写入: ' + fp, 'ok'); }
+    else this.toast('写入失败: ' + r.error, 'err');
+  },
+
+  // ─── DARK MODE TOGGLE ───
+  toggleTheme() {
+    const root = document.documentElement;
+    const isDark = root.dataset.theme === 'dark';
+    root.dataset.theme = isDark ? '' : 'dark';
+    const lightIcon = document.getElementById('theme-icon-light');
+    const darkIcon = document.getElementById('theme-icon-dark');
+    if (lightIcon) lightIcon.style.display = isDark ? '' : 'none';
+    if (darkIcon) darkIcon.style.display = isDark ? 'none' : '';
+    this.config.theme = isDark ? 'light' : 'dark';
+    this.saveConfig();
+  },
+
+  loadTheme() {
+    const theme = this.config.theme || 'light';
+    if (theme === 'dark') {
+      document.documentElement.dataset.theme = 'dark';
+      const lightIcon = document.getElementById('theme-icon-light');
+      const darkIcon = document.getElementById('theme-icon-dark');
+      if (lightIcon) lightIcon.style.display = 'none';
+      if (darkIcon) darkIcon.style.display = '';
+    }
+  },
+
+  // ─── CONVERSATION PIN ───
+  togglePin(id, event) {
+    if (event) { event.stopPropagation(); event.preventDefault(); }
+    const conv = this.getConv(id);
+    if (!conv) return;
+    conv.pinned = !conv.pinned;
+    this.saveConvs();
+    this.renderConvList();
+  },
+
+  // ─── IN-CONVERSATION SEARCH ───
+  _searchMatches: [],
+  _searchIdx: -1,
+
+  toggleChatSearch() {
+    const bar = document.getElementById('chat-search-bar');
+    if (!bar) return;
+    const isVisible = bar.classList.toggle('visible');
+    if (isVisible) {
+      const input = document.getElementById('chat-search-input');
+      if (input) { input.value = ''; input.focus(); }
+      this._clearSearchHighlights();
+    } else {
+      this._clearSearchHighlights();
+    }
+  },
+
+  searchInChat(query) {
+    this._clearSearchHighlights();
+    this._searchMatches = [];
+    this._searchIdx = -1;
+    if (!query || query.length < 2) {
+      const countEl = document.getElementById('search-count');
+      if (countEl) countEl.textContent = '';
+      return;
+    }
+    const msgs = document.querySelectorAll('.msg-text');
+    msgs.forEach(el => {
+      const text = el.textContent;
+      const lower = text.toLowerCase();
+      const q = query.toLowerCase();
+      let pos = 0;
+      while ((pos = lower.indexOf(q, pos)) !== -1) {
+        this._searchMatches.push({ el, pos, len: q.length });
+        pos += q.length;
+      }
+    });
+    const countEl = document.getElementById('search-count');
+    if (countEl) countEl.textContent = this._searchMatches.length ? `${this._searchMatches.length} 个匹配` : '无匹配';
+    if (this._searchMatches.length > 0) {
+      this._searchIdx = 0;
+      this._highlightCurrentMatch();
+    }
+  },
+
+  _clearSearchHighlights() {
+    document.querySelectorAll('mark.search-hl').forEach(m => {
+      const parent = m.parentNode;
+      parent.replaceChild(document.createTextNode(m.textContent), m);
+      parent.normalize();
+    });
+  },
+
+  _highlightCurrentMatch() {
+    document.querySelectorAll('mark.search-hl.current').forEach(m => m.classList.remove('current'));
+    if (this._searchIdx < 0 || this._searchIdx >= this._searchMatches.length) return;
+    const match = this._searchMatches[this._searchIdx];
+    match.el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    match.el.style.outline = '2px solid var(--accent)';
+    setTimeout(() => { match.el.style.outline = ''; }, 1500);
+  },
+
+  searchNext() {
+    if (!this._searchMatches.length) return;
+    this._searchIdx = (this._searchIdx + 1) % this._searchMatches.length;
+    this._highlightCurrentMatch();
+    const countEl = document.getElementById('search-count');
+    if (countEl) countEl.textContent = `${this._searchIdx + 1}/${this._searchMatches.length}`;
+  },
+
+  searchPrev() {
+    if (!this._searchMatches.length) return;
+    this._searchIdx = (this._searchIdx - 1 + this._searchMatches.length) % this._searchMatches.length;
+    this._highlightCurrentMatch();
+    const countEl = document.getElementById('search-count');
+    if (countEl) countEl.textContent = `${this._searchIdx + 1}/${this._searchMatches.length}`;
+  },
+
+  // ─── FONT SIZE ADJUSTMENT ───
+  adjustFontSize(delta) {
+    if (delta === 0) { this.config.fontSize = 14; }
+    else { this.config.fontSize = Math.max(10, Math.min(22, (this.config.fontSize || 14) + delta)); }
+    document.documentElement.style.fontSize = this.config.fontSize + 'px';
+    this.saveConfig();
+    this.toast(`字号: ${this.config.fontSize}px`, 'ok');
+  },
+
+  loadFontSize() {
+    const size = this.config.fontSize || 14;
+    if (size !== 14) document.documentElement.style.fontSize = size + 'px';
+  },
+
+  // ─── NOTIFICATION SOUND ───
+  playNotifSound() {
+    if (!this.config.notificationSound) return;
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = 800; osc.type = 'sine';
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+      osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.3);
+    } catch {}
   },
 
   regenerateMsg(btn) {
