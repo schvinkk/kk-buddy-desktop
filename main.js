@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, ipcMain, dialog, shell, nativeImage } = require('electron');
+﻿const { app, BrowserWindow, Tray, Menu, ipcMain, dialog, shell, nativeImage } = require('electron');
 const path = require('path');
 const { exec } = require('child_process');
 const fs = require('fs');
@@ -76,11 +76,17 @@ function createWindow() {
   mainWindow.on('closed', () => { mainWindow = null; });
 }
 
-function createIcon() {
+function createIcon(size) {
   try {
-    const iconPath = path.join(__dirname, 'icon.png');
-    if (fs.existsSync(iconPath)) {
-      return nativeImage.createFromPath(iconPath).resize({ width: 32, height: 32 });
+    const icoPath = path.join(__dirname, 'icon.ico');
+    const pngPath = path.join(__dirname, 'icon.png');
+    if (fs.existsSync(icoPath)) {
+      const img = nativeImage.createFromPath(icoPath);
+      return size ? img.resize({ width: size, height: size }) : img;
+    }
+    if (fs.existsSync(pngPath)) {
+      const img = nativeImage.createFromPath(pngPath);
+      return size ? img.resize({ width: size, height: size }) : img;
     }
     return nativeImage.createEmpty();
   } catch (e) {

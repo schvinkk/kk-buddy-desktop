@@ -26,6 +26,7 @@
       "preload.js",
       "index.html",
       "icon.png",
+      "icon.ico",
       "css/**/*",
       "renderer/**/*",
       "package.json"
@@ -39,7 +40,7 @@
           ]
         }
       ],
-      "icon": "icon.png",
+      "icon": "icon.ico",
       "forceCodeSigning": false,
       "signAndEditExecutable": false
     },
