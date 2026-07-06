@@ -1,6 +1,6 @@
 {
   "name": "kk-buddy-desktop",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "KK-Buddy Desktop - Universal AI Coding Assistant",
   "main": "main.js",
   "scripts": {
@@ -62,3 +62,4 @@
     "pptxgenjs": "^4.0.1"
   }
 }
+

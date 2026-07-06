@@ -1251,20 +1251,23 @@ const App = {
   showWelcome() {
     const inner = document.getElementById('chat-inner');
     inner.innerHTML = `<div class="welcome" id="welcome-screen">
+      <div class="welcome-logo">
+        <img src="icon.png" alt="KK" style="width:48px;height:48px;border-radius:12px">
+      </div>
       <h1>KK-Buddy Desktop</h1>
       <p class="sub">本地 AI 编程助手 · 由自定义大模型驱动</p>
       <div class="welcome-grid">
         <div class="wc" onclick="App.quickStart('帮我写一个 Python 脚本，实现网页数据爬取')">
-          <h3>🐍 写代码</h3><p>Python、JS、Go 等任意语言</p>
+          <h3><span class="wc-icon">🐍</span> 写代码</h3><p>Python、JS、Go 等任意语言</p>
         </div>
         <div class="wc" onclick="App.quickStart('分析这段代码有什么问题，给出优化建议')">
-          <h3>🔍 分析代码</h3><p>查找 Bug、性能优化</p>
+          <h3><span class="wc-icon">🔍</span> 分析代码</h3><p>查找 Bug、性能优化</p>
         </div>
         <div class="wc" onclick="App.quickStart('帮我设计一个简单的 REST API 架构')">
-          <h3>🏗️ 架构设计</h3><p>系统设计、技术方案</p>
+          <h3><span class="wc-icon">🏗️</span> 架构设计</h3><p>系统设计、技术方案</p>
         </div>
         <div class="wc" onclick="App.quickStart('帮我用 shell 命令查看当前目录结构')">
-          <h3>⚡ Agent 执行</h3><p>执行命令、读写文件</p>
+          <h3><span class="wc-icon">⚡</span> Agent 执行</h3><p>执行命令、读写文件</p>
         </div>
       </div>
     </div>`;
@@ -1280,10 +1283,14 @@ const App = {
     if (!animate) div.style.animation = 'none';
 
     const isUser = role === 'user';
+    div.classList.add(isUser ? 'msg-user' : 'msg-assistant');
+
     const avatarClass = isUser ? 'user-av' : 'bot-av';
     const nameClass = isUser ? 'user-n' : 'bot-n';
     const nameText = isUser ? '你' : 'KK-Buddy';
-    const icon = isUser ? 'U' : '';
+    const icon = isUser
+      ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'
+      : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>';
 
     let html = `<div class="msg-head"><span class="msg-avatar ${avatarClass}">${icon}</span><span class="msg-name ${nameClass}">${nameText}</span></div><div class="msg-body">`;
 
