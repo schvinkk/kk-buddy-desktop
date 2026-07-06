@@ -1,7 +1,7 @@
 {
   "name": "kk-buddy-desktop",
   "version": "2.5.0",
-  "description": "KK-Buddy Desktop - Universal AI Coding Assistant",
+  "description": "KK-Buddy - Universal AI Coding Assistant",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

@@ -1,4 +1,4 @@
-﻿const { app, BrowserWindow, Tray, Menu, ipcMain, dialog, shell, nativeImage } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, dialog, shell, nativeImage } = require('electron');
 const path = require('path');
 const { exec } = require('child_process');
 const fs = require('fs');
@@ -41,7 +41,7 @@ function createWindow() {
     height: 820,
     minWidth: 860,
     minHeight: 560,
-    title: 'KK-Buddy Desktop',
+    title: 'KK-Buddy',
     backgroundColor: '#f8f9fa',
     frame: false,
     titleBarStyle: 'hidden',
@@ -98,11 +98,11 @@ function createIcon(size) {
 function createTray() {
   tray = new Tray(createIcon());
   const contextMenu = Menu.buildFromTemplate([
-    { label: '鏄剧ず KK-Buddy Desktop', click: () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); } } },
+    { label: '鏄剧ず KK-Buddy', click: () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); } } },
     { type: 'separator' },
     { label: '閫€鍑?, click: () => { isQuitting = true; app.quit(); } }
   ]);
-  tray.setToolTip('KK-Buddy Desktop');
+  tray.setToolTip('KK-Buddy');
   tray.setContextMenu(contextMenu);
   tray.on('double-click', () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); } });
 }
@@ -749,7 +749,7 @@ ipcMain.handle('tool:generate-docx', async (_, { title, sections, outputPath }) 
     }
 
     const doc = new DocxDocument({
-      creator: 'KK-Buddy Desktop',
+      creator: 'KK-Buddy',
       title: title || 'Document',
       sections: [{ children }]
     });
@@ -768,7 +768,7 @@ ipcMain.handle('tool:generate-docx', async (_, { title, sections, outputPath }) 
 ipcMain.handle('tool:generate-pptx', async (_, { title, slides, outputPath, theme }) => {
   try {
     const pptx = new PptxGenJS();
-    pptx.author = 'KK-Buddy Desktop';
+    pptx.author = 'KK-Buddy';
     pptx.title = title || 'Presentation';
 
     // Set theme
@@ -900,7 +900,7 @@ ipcMain.handle('tool:generate-pdf', async (_, { title, content, outputPath, opti
 ipcMain.handle('tool:generate-excel', async (_, { title, sheets, outputPath }) => {
   try {
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'KK-Buddy Desktop';
+    workbook.creator = 'KK-Buddy';
     workbook.created = new Date();
 
     if (sheets && Array.isArray(sheets)) {

@@ -1,4 +1,4 @@
-// ═══════════════════════ KK-BUDDY DESKTOP APP ═══════════════════════
+// ═══════════════════════ KK-Buddy APP ═══════════════════════
 const API = window.electronAPI;
 
 // ─── TOOL DEFINITIONS (for Agent mode) ───
@@ -1254,7 +1254,7 @@ const App = {
       <div class="welcome-logo">
         <img src="icon.png" alt="KK" style="width:48px;height:48px;border-radius:12px">
       </div>
-      <h1>KK-Buddy Desktop</h1>
+      <h1>KK-Buddy</h1>
       <p class="sub">本地 AI 编程助手 · 由自定义大模型驱动</p>
       <div class="welcome-grid">
         <div class="wc" onclick="App.quickStart('帮我写一个 Python 脚本，实现网页数据爬取')">
