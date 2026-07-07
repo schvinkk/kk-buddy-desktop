@@ -6,7 +6,7 @@ const os = require('os');
 const https = require('https');
 const http = require('http');
 
-// 鈹€鈹€鈹€ Helper: Simple HTTP fetch without external dependencies 鈹€鈹€鈹€
+// ─── Helper: Simple HTTP fetch without external dependencies ───
 function httpFetch(url, options = {}) {
   return new Promise((resolve, reject) => {
     const protocol = url.startsWith('https') ? https : http;
@@ -20,13 +20,13 @@ function httpFetch(url, options = {}) {
   });
 }
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ FILE GENERATION LIBS 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ─────────────── FILE GENERATION LIBS ───────────────
 const { Document: DocxDocument, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, TableRow, TableCell, WidthType, BorderStyle, Table, TableCellMarginUnitType } = require('docx');
 const PptxGenJS = require('pptxgenjs');
 const PDFDocument = require('pdfkit');
 const ExcelJS = require('exceljs');
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ BROWSER AUTOMATION LIBS 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ─────────────── BROWSER AUTOMATION LIBS ───────────────
 const { chromium } = require('playwright');
 
 let mainWindow = null;
@@ -34,7 +34,7 @@ let tray = null;
 let isQuitting = false;
 let browserInstance = null;
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ WINDOW 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ─────────────── WINDOW ───────────────
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -76,17 +76,15 @@ function createWindow() {
   mainWindow.on('closed', () => { mainWindow = null; });
 }
 
-function createIcon(size) {
+function createIcon() {
   try {
     const icoPath = path.join(__dirname, 'icon.ico');
     const pngPath = path.join(__dirname, 'icon.png');
     if (fs.existsSync(icoPath)) {
-      const img = nativeImage.createFromPath(icoPath);
-      return size ? img.resize({ width: size, height: size }) : img;
+      return nativeImage.createFromPath(icoPath);
     }
     if (fs.existsSync(pngPath)) {
-      const img = nativeImage.createFromPath(pngPath);
-      return size ? img.resize({ width: size, height: size }) : img;
+      return nativeImage.createFromPath(pngPath).resize({ width: 32, height: 32 });
     }
     return nativeImage.createEmpty();
   } catch (e) {
@@ -94,20 +92,20 @@ function createIcon(size) {
   }
 }
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ TRAY 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ─────────────── TRAY ───────────────
 function createTray() {
   tray = new Tray(createIcon());
   const contextMenu = Menu.buildFromTemplate([
-    { label: '鏄剧ず KK-Buddy', click: () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); } } },
+    { label: '显示 KK-Buddy', click: () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); } } },
     { type: 'separator' },
-    { label: '閫€鍑?, click: () => { isQuitting = true; app.quit(); } }
+    { label: '退出', click: () => { isQuitting = true; app.quit(); } }
   ]);
   tray.setToolTip('KK-Buddy');
   tray.setContextMenu(contextMenu);
   tray.on('double-click', () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); } });
 }
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ IPC HANDLERS 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ─────────────── IPC HANDLERS ───────────────
 
 // Tool: Execute shell command
 ipcMain.handle('tool:shell', async (_, { command, cwd }) => {
@@ -353,7 +351,7 @@ ipcMain.handle('os:platform', () => process.platform);
 // App version
 ipcMain.handle('app:version', () => app.getVersion());
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ MEMORY SYSTEM 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ─────────────── MEMORY SYSTEM ───────────────
 const MEMORY_DIR = path.join(app.getPath('userData'), 'memories');
 function ensureMemoryDir() {
   if (!fs.existsSync(MEMORY_DIR)) fs.mkdirSync(MEMORY_DIR, { recursive: true });
@@ -422,14 +420,14 @@ ipcMain.handle('memory:get-all', async () => {
   } catch (err) { return { success: false, error: err.message }; }
 });
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ WEB TOOLS 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ─────────────── WEB TOOLS ───────────────
 
 // Web Fetch: GET a URL and return text content
 ipcMain.handle('web:fetch', async (_, { url, maxLen }) => {
   return new Promise((resolve) => {
     try {
       const client = url.startsWith('https') ? https : http;
-      const req = client.get(url, { headers: { 'User-Agent': 'KK-Buddy/2.5.0' }, timeout: 15000 }, (res) => {
+      const req = client.get(url, { headers: { 'User-Agent': 'KK-Buddy/2.0' }, timeout: 15000 }, (res) => {
         if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
           // Follow one redirect
           const redirectUrl = res.headers.location.startsWith('http') ? res.headers.location : new URL(res.headers.location, url).href;
@@ -487,7 +485,7 @@ ipcMain.handle('web:search', async (_, { query, maxResults }) => {
   });
 });
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ SKILLS SYSTEM 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ─────────────── SKILLS SYSTEM ───────────────
 const SKILLS_DIR = path.join(app.getPath('userData'), 'skills');
 
 function ensureSkillsDir() {
@@ -574,7 +572,7 @@ ipcMain.handle('app:get-path', async (_, { name }) => {
   return app.getPath(name);
 });
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ COMPUTER CONTROL 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ─────────────── COMPUTER CONTROL ───────────────
 
 // Screenshot capture using PowerShell (Windows) or screencapture (macOS)
 ipcMain.handle('screen:screenshot', async (_, { x, y, width, height }) => {
@@ -626,7 +624,7 @@ ipcMain.handle('screen:screenshot', async (_, { x, y, width, height }) => {
         });
       });
     } else {
-      return { success: false, error: '鎴浘鍔熻兘鏆備笉鏀寔姝ゆ搷浣滅郴缁? };
+      return { success: false, error: '截图功能暂不支持此操作系统' };
     }
   } catch (err) {
     return { success: false, error: err.message };
@@ -636,7 +634,7 @@ ipcMain.handle('screen:screenshot', async (_, { x, y, width, height }) => {
 // Input control: click, type, scroll using Win32 API via PowerShell
 ipcMain.handle('input:control', async (_, { action, x, y, button, doubleClick, text, deltaX, deltaY }) => {
   if (process.platform !== 'win32') {
-    return { success: false, error: '鐢佃剳鎺у埗鍔熻兘鐩墠浠呮敮鎸?Windows' };
+    return { success: false, error: '电脑控制功能目前仅支持 Windows' };
   }
 
   const tmpScript = path.join(app.getPath('temp'), `kk-input-${Date.now()}.ps1`);
@@ -676,7 +674,7 @@ Add-Type -AssemblyName System.Windows.Forms`;
       break;
     }
     default:
-      return { success: false, error: '鏈煡鎿嶄綔: ' + action };
+      return { success: false, error: '未知操作: ' + action };
   }
 
   // Write PS script to temp file and execute
@@ -695,7 +693,7 @@ Add-Type -AssemblyName System.Windows.Forms`;
   });
 });
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ FILE GENERATION TOOLS 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ─────────────── FILE GENERATION TOOLS ───────────────
 
 // Tool: Generate DOCX (Word document)
 ipcMain.handle('tool:generate-docx', async (_, { title, sections, outputPath }) => {
@@ -864,7 +862,7 @@ ipcMain.handle('tool:generate-pdf', async (_, { title, content, outputPath, opti
               doc.moveDown(0.3);
             } else if (item.type === 'list') {
               (item.items || []).forEach(listItem => {
-                doc.fontSize(12).font('Helvetica').text(`鈥?${listItem}`, { indent: 20 });
+                doc.fontSize(12).font('Helvetica').text(`• ${listItem}`, { indent: 20 });
               });
               doc.moveDown(0.3);
             } else if (item.type === 'table') {
@@ -970,7 +968,7 @@ ipcMain.handle('tool:generate-mermaid', async (_, { code, outputPath, theme }) =
   }
 });
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ BROWSER AUTOMATION TOOLS 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ─────────────── BROWSER AUTOMATION TOOLS ───────────────
 
 // Tool: Launch browser
 ipcMain.handle('browser:launch', async (_, { headless, userAgent, viewport }) => {
@@ -1076,7 +1074,7 @@ ipcMain.handle('browser:close', async () => {
   }
 });
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ MULTI-AGENT SYSTEM 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ─────────────── MULTI-AGENT SYSTEM ───────────────
 const agentTeams = new Map();
 
 // Agent class
@@ -1173,7 +1171,7 @@ ipcMain.handle('agent:delete-team', async (_, { teamId }) => {
   }
 });
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ SCHEDULER SYSTEM 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ─────────────── SCHEDULER SYSTEM ───────────────
 const scheduledTasks = new Map();
 
 // Tool: Schedule task
@@ -1275,7 +1273,7 @@ ipcMain.handle('scheduler:list', async () => {
   }
 });
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ PLUGIN MARKET SYSTEM 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ─────────────── PLUGIN MARKET SYSTEM ───────────────
 const pluginsDir = path.join(app.getPath('userData'), 'plugins');
 const installedPlugins = new Map();
 
@@ -1395,7 +1393,7 @@ ipcMain.handle('plugin:get-info', async (_, { pluginId }) => {
   }
 });
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ APP LIFECYCLE 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ─────────────── APP LIFECYCLE ───────────────
 app.whenReady().then(() => {
   createWindow();
   createTray();
@@ -1410,529 +1408,529 @@ app.on('activate', () => {
   else mainWindow.show();
 });
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ BUILT-IN PLUGINS (from awesome-mcp-servers, GitHub top stars, B绔?鎶栭煶鎺ㄨ崘) 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ─────────────── BUILT-IN PLUGINS (from awesome-mcp-servers, GitHub top stars, B站/抖音推荐) ───────────────
 const builtInPlugins = [
-  // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?鍩虹宸ュ叿 (鍘熸湁) 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+  // ═══════════════════ 基础工具 (原有) ═══════════════════
   {
     id: 'filesystem',
     name: 'Filesystem',
-    description: '瀹夊叏鐨勬枃浠剁郴缁熸搷浣滐紝鏀寔鍙厤缃殑璁块棶鎺у埗',
+    description: '安全的文件系统操作，支持可配置的访问控制',
     version: '1.0.0',
     author: 'MCP Community',
-    category: '鏂囦欢鎿嶄綔',
-    stars: '猸?瀹樻柟',
+    category: '文件操作',
+    stars: '⭐ 官方',
     github: 'https://github.com/modelcontextprotocol/servers',
     enabled: true
   },
   {
     id: 'git',
     name: 'Git',
-    description: '璇诲彇銆佹悳绱㈠拰鎿嶄綔Git浠ｇ爜搴撶殑宸ュ叿',
+    description: '读取、搜索和操作Git代码库的工具',
     version: '1.0.0',
     author: 'MCP Community',
-    category: '鐗堟湰鎺у埗',
-    stars: '猸?瀹樻柟',
+    category: '版本控制',
+    stars: '⭐ 官方',
     github: 'https://github.com/modelcontextprotocol/servers',
     enabled: true
   },
   {
     id: 'web-fetch',
     name: 'Web Fetch',
-    description: '鑾峰彇鍜岃浆鎹㈢綉椤靛唴瀹癸紝渚夸簬LLM楂樻晥浣跨敤',
+    description: '获取和转换网页内容，便于LLM高效使用',
     version: '1.0.0',
     author: 'MCP Community',
-    category: '缃戠粶',
-    stars: '猸?瀹樻柟',
+    category: '网络',
+    stars: '⭐ 官方',
     github: 'https://github.com/modelcontextprotocol/servers',
     enabled: true
   },
   {
     id: 'memory',
     name: 'Memory',
-    description: '鍩轰簬鐭ヨ瘑鍥捐氨鐨勬寔涔呭寲璁板繂绯荤粺',
+    description: '基于知识图谱的持久化记忆系统',
     version: '1.0.0',
     author: 'MCP Community',
-    category: '璁板繂',
-    stars: '猸?瀹樻柟',
+    category: '记忆',
+    stars: '⭐ 官方',
     github: 'https://github.com/modelcontextprotocol/servers',
     enabled: true
   },
   {
     id: 'sequential-thinking',
     name: 'Sequential Thinking',
-    description: '閫氳繃鎬濈淮搴忓垪杩涜鍔ㄦ€佸拰鍙嶆€濇€х殑闂瑙ｅ喅',
+    description: '通过思维序列进行动态和反思性的问题解决',
     version: '1.0.0',
     author: 'MCP Community',
-    category: '鎺ㄧ悊',
-    stars: '猸?瀹樻柟',
+    category: '推理',
+    stars: '⭐ 官方',
     github: 'https://github.com/modelcontextprotocol/servers',
     enabled: true
   },
   {
     id: 'time',
     name: 'Time',
-    description: '鎻愪緵鏃堕棿鍜屾椂鍖鸿浆鎹㈠姛鑳?,
+    description: '提供时间和时区转换功能',
     version: '1.0.0',
     author: 'MCP Community',
-    category: '宸ュ叿',
-    stars: '猸?瀹樻柟',
+    category: '工具',
+    stars: '⭐ 官方',
     github: 'https://github.com/modelcontextprotocol/servers',
     enabled: true
   },
   {
     id: 'database',
     name: 'Database',
-    description: 'SQL鏁版嵁搴撴煡璇㈠拰鎿嶄綔宸ュ叿 (鏀寔MySQL/PostgreSQL/SQLite)',
+    description: 'SQL数据库查询和操作工具 (支持MySQL/PostgreSQL/SQLite)',
     version: '1.0.0',
     author: 'MCP Community',
-    category: '鏁版嵁',
-    stars: '猸?瀹樻柟',
+    category: '数据',
+    stars: '⭐ 官方',
     github: 'https://github.com/modelcontextprotocol/servers',
     enabled: true
   },
   {
     id: 'email',
     name: 'Email',
-    description: '鏀跺彂鐢靛瓙閭欢鐨勫伐鍏?,
+    description: '收发电子邮件的工具',
     version: '1.0.0',
     author: 'MCP Community',
-    category: '閫氫俊',
-    stars: '猸?瀹樻柟',
+    category: '通信',
+    stars: '⭐ 官方',
     github: 'https://github.com/modelcontextprotocol/servers',
     enabled: true
   },
   {
     id: 'calendar',
     name: 'Calendar',
-    description: '鏃ュ巻浜嬩欢绠＄悊宸ュ叿',
+    description: '日历事件管理工具',
     version: '1.0.0',
     author: 'MCP Community',
-    category: '鏁堢巼',
-    stars: '猸?瀹樻柟',
+    category: '效率',
+    stars: '⭐ 官方',
     github: 'https://github.com/modelcontextprotocol/servers',
     enabled: true
   },
   {
     id: 'weather',
     name: 'Weather',
-    description: '鑾峰彇澶╂皵棰勬姤淇℃伅',
+    description: '获取天气预报信息',
     version: '1.0.0',
     author: 'MCP Community',
-    category: '淇℃伅',
-    stars: '猸?瀹樻柟',
+    category: '信息',
+    stars: '⭐ 官方',
     github: 'https://github.com/modelcontextprotocol/servers',
     enabled: true
   },
 
-  // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?娴忚鍣ㄨ嚜鍔ㄥ寲 (GitHub 猸愨瓙猸愨瓙猸? 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+  // ═══════════════════ 浏览器自动化 (GitHub ⭐⭐⭐⭐⭐) ═══════════════════
   {
     id: 'chrome-devtools',
     name: 'Chrome DevTools',
-    description: '猸?2K Stars - Google瀹樻柟Chrome DevTools鍗忚闆嗘垚锛屽彲鐩存帴椹卞姩娴忚鍣―evTools杩涜璋冭瘯鍜屾搷浣?,
+    description: '⭐42K Stars - Google官方Chrome DevTools协议集成，可直接驱动浏览器DevTools进行调试和操作',
     version: '1.0.0',
     author: 'ChromeDevTools',
-    category: '娴忚鍣ㄨ嚜鍔ㄥ寲',
-    stars: '猸愨瓙猸愨瓙猸?42K',
+    category: '浏览器自动化',
+    stars: '⭐⭐⭐⭐⭐ 42K',
     github: 'https://github.com/ChromeDevTools/chrome-devtools-mcp',
     enabled: true
   },
   {
     id: 'playwright',
     name: 'Playwright',
-    description: '猸?5K Stars - 寰蒋瀹樻柟Playwright娴忚鍣ㄨ嚜鍔ㄥ寲锛屾敮鎸侀〉闈氦浜掋€佹埅鍥俱€佹暟鎹姄鍙?,
+    description: '⭐35K Stars - 微软官方Playwright浏览器自动化，支持页面交互、截图、数据抓取',
     version: '1.0.0',
     author: 'Microsoft',
-    category: '娴忚鍣ㄨ嚜鍔ㄥ寲',
-    stars: '猸愨瓙猸愨瓙猸?35K',
+    category: '浏览器自动化',
+    stars: '⭐⭐⭐⭐⭐ 35K',
     github: 'https://github.com/microsoft/playwright-mcp',
     enabled: true
   },
   {
     id: 'puppeteer',
     name: 'Puppeteer',
-    description: '瀹樻柟Puppeteer闆嗘垚锛屽熀浜嶤hrome/Chromium鐨勭綉椤垫姄鍙栧拰浜や簰',
+    description: '官方Puppeteer集成，基于Chrome/Chromium的网页抓取和交互',
     version: '1.0.0',
     author: 'MCP Community',
-    category: '娴忚鍣ㄨ嚜鍔ㄥ寲',
-    stars: '猸愨瓙猸愨瓙 瀹樻柟',
+    category: '浏览器自动化',
+    stars: '⭐⭐⭐⭐ 官方',
     github: 'https://github.com/modelcontextprotocol/servers/tree/main/src/puppeteer',
     enabled: true
   },
   {
     id: 'youtube-transcript',
     name: 'YouTube Transcript',
-    description: '鑾峰彇YouTube瑙嗛瀛楀箷鍜屾枃瀛楄褰曪紝鏀寔AI鍒嗘瀽瑙嗛鍐呭',
+    description: '获取YouTube视频字幕和文字记录，支持AI分析视频内容',
     version: '1.0.0',
     author: 'kimtaeyoon83',
-    category: '娴忚鍣ㄨ嚜鍔ㄥ寲',
-    stars: '猸愨瓙猸?,
+    category: '浏览器自动化',
+    stars: '⭐⭐⭐',
     github: 'https://github.com/kimtaeyoon83/mcp-server-youtube-transcript',
     enabled: true
   },
 
-  // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?浜戝钩鍙?鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+  // ═══════════════════ 云平台 ═══════════════════
   {
     id: 'cloudflare',
     name: 'Cloudflare',
-    description: 'Cloudflare瀹樻柟闆嗘垚 - Workers/KV/R2/D1绛夎竟缂樿绠楁湇鍔＄鐞?,
+    description: 'Cloudflare官方集成 - Workers/KV/R2/D1等边缘计算服务管理',
     version: '1.0.0',
     author: 'Cloudflare Inc.',
-    category: '浜戝钩鍙?,
-    stars: '猸愨瓙猸愨瓙 瀹樻柟',
+    category: '云平台',
+    stars: '⭐⭐⭐⭐ 官方',
     github: 'https://github.com/cloudflare/mcp-server-cloudflare',
     enabled: true
   },
   {
     id: 'kubernetes',
     name: 'Kubernetes',
-    description: 'K8s闆嗙兢绠＄悊 - pod/deployment/service绛夎祫婧愭搷浣?,
+    description: 'K8s集群管理 - pod/deployment/service等资源操作',
     version: '1.0.0',
     author: 'strowk',
-    category: '浜戝钩鍙?,
-    stars: '猸愨瓙猸?,
+    category: '云平台',
+    stars: '⭐⭐⭐',
     github: 'https://github.com/strowk/mcp-k8s-go',
     enabled: true
   },
 
-  // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?鎼滅储涓庣煡璇嗚幏鍙?(Top Stars) 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+  // ═══════════════════ 搜索与知识获取 (Top Stars) ═══════════════════
   {
     id: 'context7',
     name: 'Context7',
-    description: '猸?8K Stars - 瀹炴椂娉ㄥ叆搴撴枃妗ｏ紝娑堥櫎AI骞昏銆傝嚜鍔ㄦ媺鍙栨渶鏂版枃妗ｈAI鍩轰簬褰撳墠鏂囨。鍥炵瓟',
+    description: '⭐58K Stars - 实时注入库文档，消除AI幻觉。自动拉取最新文档让AI基于当前文档回答',
     version: '1.0.0',
     author: 'Upstash',
-    category: '鎼滅储',
-    stars: '猸愨瓙猸愨瓙猸?58K',
+    category: '搜索',
+    stars: '⭐⭐⭐⭐⭐ 58K',
     github: 'https://github.com/upstash/context7',
     enabled: true
   },
   {
     id: 'brave-search',
     name: 'Brave Search',
-    description: 'Brave闅愮鎼滅储API闆嗘垚锛屾瘡鏈?000娆″厤璐规煡璇紝鐙珛鎼滅储绱㈠紩',
+    description: 'Brave隐私搜索API集成，每月2000次免费查询，独立搜索索引',
     version: '1.0.0',
     author: 'MCP Community',
-    category: '鎼滅储',
-    stars: '猸愨瓙猸愨瓙 瀹樻柟',
+    category: '搜索',
+    stars: '⭐⭐⭐⭐ 官方',
     github: 'https://github.com/modelcontextprotocol/servers/tree/main/src/brave-search',
     enabled: true
   },
   {
     id: 'gpt-researcher',
     name: 'GPT Researcher',
-    description: '猸?8K Stars - 娣卞害鐮旂┒浠ｇ悊锛岃嚜鍔ㄨ鍒掋€佹墽琛屽苟鐢熸垚甯﹀紩鐢ㄧ殑缁撴瀯鍖栫爺绌舵姤鍛?,
+    description: '⭐28K Stars - 深度研究代理，自动规划、执行并生成带引用的结构化研究报告',
     version: '1.0.0',
     author: 'GPT Researcher Team',
-    category: '鎼滅储',
-    stars: '猸愨瓙猸愨瓙猸?28K',
+    category: '搜索',
+    stars: '⭐⭐⭐⭐⭐ 28K',
     github: 'https://github.com/assafelovic/gpt-researcher',
     enabled: true
   },
   {
     id: 'arxiv',
     name: 'ArXiv Search',
-    description: '鎼滅储鍜岄槄璇籄rXiv瀛︽湳璁烘枃锛岃幏鍙栨渶鏂扮爺绌舵垚鏋?,
+    description: '搜索和阅读ArXiv学术论文，获取最新研究成果',
     version: '1.0.0',
     author: 'MCP Community',
-    category: '鎼滅储',
-    stars: '猸愨瓙猸?,
+    category: '搜索',
+    stars: '⭐⭐⭐',
     github: 'https://github.com/blazickjp/arxiv-mcp-server',
     enabled: true
   },
 
-  // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?浠ｇ爜鏅鸿兘 (猸愰珮鏄? 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+  // ═══════════════════ 代码智能 (⭐高星) ═══════════════════
   {
     id: 'codebase-memory',
     name: 'Codebase Memory',
-    description: '猸?2K Stars - 灏嗕唬鐮佸簱绱㈠紩鍒版寔涔呯煡璇嗗浘璋憋紝鏀寔楂樻晥鐨勪唬鐮佺粨鏋勬帰绱㈠拰鍒嗘瀽',
+    description: '⭐22K Stars - 将代码库索引到持久知识图谱，支持高效的代码结构探索和分析',
     version: '1.0.0',
     author: 'DeusData',
-    category: '浠ｇ爜鏅鸿兘',
-    stars: '猸愨瓙猸愨瓙猸?22K',
+    category: '代码智能',
+    stars: '⭐⭐⭐⭐⭐ 22K',
     github: 'https://github.com/DeusData/codebase-memory-mcp',
     enabled: true
   },
   {
     id: 'github',
     name: 'GitHub',
-    description: '猸?1K Stars - GitHub API楂樼骇闆嗘垚锛岀鐞嗕粨搴?PR/Issues/浠ｇ爜鎼滅储/鍗忎綔',
+    description: '⭐31K Stars - GitHub API高级集成，管理仓库/PR/Issues/代码搜索/协作',
     version: '1.0.0',
     author: 'MCP Community',
-    category: '浠ｇ爜鏅鸿兘',
-    stars: '猸愨瓙猸愨瓙猸?31K',
+    category: '代码智能',
+    stars: '⭐⭐⭐⭐⭐ 31K',
     github: 'https://github.com/modelcontextprotocol/servers/tree/main/src/github',
     enabled: true
   },
   {
     id: 'gitlab',
     name: 'GitLab',
-    description: 'GitLab闆嗘垚锛屾敮鎸侀」鐩鐞嗐€丆I/CD娴佹按绾裤€佷唬鐮佸鏌?,
+    description: 'GitLab集成，支持项目管理、CI/CD流水线、代码审查',
     version: '1.0.0',
     author: 'MCP Community',
-    category: '浠ｇ爜鏅鸿兘',
-    stars: '猸愨瓙猸愨瓙 瀹樻柟',
+    category: '代码智能',
+    stars: '⭐⭐⭐⭐ 官方',
     github: 'https://github.com/modelcontextprotocol/servers/tree/main/src/gitlab',
     enabled: true
   },
 
-  // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?鏁版嵁绉戝 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+  // ═══════════════════ 数据科学 ═══════════════════
   {
     id: 'mindsdb',
     name: 'MindsDB',
-    description: '猸?9K Stars - 鑱斿悎鏌ヨ寮曟搸锛屽湪鏁版嵁搴撲笂璁粌鍜屾煡璇I妯″瀷',
+    description: '⭐39K Stars - 联合查询引擎，在数据库上训练和查询AI模型',
     version: '1.0.0',
     author: 'MindsDB',
-    category: '鏁版嵁绉戝',
-    stars: '猸愨瓙猸愨瓙猸?39K',
+    category: '数据科学',
+    stars: '⭐⭐⭐⭐⭐ 39K',
     github: 'https://github.com/mindsdb/mindsdb',
     enabled: true
   },
   {
     id: 'cognee',
     name: 'Cognee',
-    description: '猸?6K Stars - Graph-RAG璁板繂绯荤粺锛屾憚鍏ユ枃妗ｅ苟鍒涘缓浜掕仈鐭ヨ瘑鍥捐氨',
+    description: '⭐26K Stars - Graph-RAG记忆系统，摄入文档并创建互联知识图谱',
     version: '1.0.0',
     author: 'Cognee Team',
-    category: '鏁版嵁绉戝',
-    stars: '猸愨瓙猸愨瓙猸?26K',
+    category: '数据科学',
+    stars: '⭐⭐⭐⭐⭐ 26K',
     github: 'https://github.com/topoteretes/cognee',
     enabled: true
   },
 
-  // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?璁捐涓嶶I 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+  // ═══════════════════ 设计与UI ═══════════════════
   {
     id: 'figma',
     name: 'Figma Context',
-    description: '猸?5K Stars - Figma璁捐绋胯浆浠ｇ爜锛屾毚闇插浘灞傜粨鏋勮AI鍩轰簬璁捐绋跨敓鎴愬墠绔唬鐮?,
+    description: '⭐15K Stars - Figma设计稿转代码，暴露图层结构让AI基于设计稿生成前端代码',
     version: '1.0.0',
     author: 'Figma MCP Team',
-    category: '璁捐',
-    stars: '猸愨瓙猸愨瓙猸?15K',
+    category: '设计',
+    stars: '⭐⭐⭐⭐⭐ 15K',
     github: 'https://github.com/glips/figma-context-mcp',
     enabled: true
   },
   {
     id: 'penpot',
     name: 'Penpot',
-    description: '猸?5K Stars - 寮€婧愯璁″拰鍘熷瀷鍒朵綔骞冲彴锛屽讥鍚堣璁′笌浠ｇ爜涔嬮棿鐨勯缚娌?,
+    description: '⭐55K Stars - 开源设计和原型制作平台，弥合设计与代码之间的鸿沟',
     version: '1.0.0',
     author: 'Penpot Team',
-    category: '璁捐',
-    stars: '猸愨瓙猸愨瓙猸?55K',
+    category: '设计',
+    stars: '⭐⭐⭐⭐⭐ 55K',
     github: 'https://github.com/penpot/penpot',
     enabled: true
   },
 
-  // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?鐩戞帶涓庡彲瑙傛祴鎬?鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+  // ═══════════════════ 监控与可观测性 ═══════════════════
   {
     id: 'sentry',
     name: 'Sentry',
-    description: 'Sentry瀹樻柟閿欒杩借釜鍜屾€ц兘鐩戞帶锛岀洿鎺ュ湪缂栬緫鍣ㄨ拷韪嚎涓婇敊璇?,
+    description: 'Sentry官方错误追踪和性能监控，直接在编辑器追踪线上错误',
     version: '1.0.0',
     author: 'Sentry',
-    category: '鐩戞帶',
-    stars: '猸愨瓙猸愨瓙 瀹樻柟',
+    category: '监控',
+    stars: '⭐⭐⭐⭐ 官方',
     github: 'https://github.com/modelcontextprotocol/servers/tree/main/src/sentry',
     enabled: true
   },
   {
     id: 'grafana',
     name: 'Grafana',
-    description: 'Grafana瀹樻柟MCP - 鎼滅储浠〃鐩樸€佽皟鏌ヤ簨浠躲€佹煡璇㈡暟鎹簮',
+    description: 'Grafana官方MCP - 搜索仪表盘、调查事件、查询数据源',
     version: '1.0.0',
     author: 'Grafana Labs',
-    category: '鐩戞帶',
-    stars: '猸愨瓙猸愨瓙 瀹樻柟',
+    category: '监控',
+    stars: '⭐⭐⭐⭐ 官方',
     github: 'https://github.com/grafana/mcp-grafana',
     enabled: true
   },
 
-  // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?鍗忎綔涓庢矡閫?鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+  // ═══════════════════ 协作与沟通 ═══════════════════
   {
     id: 'slack',
     name: 'Slack',
-    description: 'Slack宸ヤ綔鍖洪泦鎴愶紝鏀寔棰戦亾绠＄悊銆佹秷鎭敹鍙戙€侀€氱煡鎺ㄩ€?,
+    description: 'Slack工作区集成，支持频道管理、消息收发、通知推送',
     version: '1.0.0',
     author: 'MCP Community',
-    category: '鍗忎綔',
-    stars: '猸愨瓙猸愨瓙 瀹樻柟',
+    category: '协作',
+    stars: '⭐⭐⭐⭐ 官方',
     github: 'https://github.com/modelcontextprotocol/servers/tree/main/src/slack',
     enabled: true
   },
   {
     id: 'jira',
     name: 'Jira',
-    description: 'Jira椤圭洰绠＄悊闆嗘垚锛屾敮鎸両ssue/宸ュ崟鍒涘缓銆佹煡璇㈠拰鐘舵€佺鐞?,
+    description: 'Jira项目管理集成，支持Issue/工单创建、查询和状态管理',
     version: '1.0.0',
     author: 'KS-GEN-AI',
-    category: '鍗忎綔',
-    stars: '猸愨瓙猸?,
+    category: '协作',
+    stars: '⭐⭐⭐',
     github: 'https://github.com/KS-GEN-AI/jira-mcp-server',
     enabled: true
   },
   {
     id: 'notion',
     name: 'Notion',
-    description: 'Notion宸ヤ綔鍖洪泦鎴愶紝鏀寔璇箟鎼滅储銆侀〉闈㈣鍐欏拰鐭ヨ瘑搴撶鐞?,
+    description: 'Notion工作区集成，支持语义搜索、页面读写和知识库管理',
     version: '1.0.0',
     author: 'MCP Community',
-    category: '鍗忎綔',
-    stars: '猸愨瓙猸?,
+    category: '协作',
+    stars: '⭐⭐⭐',
     github: 'https://github.com/danhilse/notion_mcp',
     enabled: true
   },
 
-  // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?寮€鍙戣€呭伐鍏?鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+  // ═══════════════════ 开发者工具 ═══════════════════
   {
     id: 'docker',
     name: 'Docker',
-    description: 'Docker瀹瑰櫒绠＄悊鍜屾搷浣滐紝鏀寔闀滃儚鎷夊彇銆佸鍣ㄥ垱寤哄拰绠＄悊',
+    description: 'Docker容器管理和操作，支持镜像拉取、容器创建和管理',
     version: '1.0.0',
     author: 'QuantGeekDev',
-    category: '寮€鍙戣€呭伐鍏?,
-    stars: '猸愨瓙猸?,
+    category: '开发者工具',
+    stars: '⭐⭐⭐',
     github: 'https://github.com/QuantGeekDev/docker-mcp',
     enabled: true
   },
   {
     id: 'n8n',
     name: 'n8n Workflow',
-    description: '猸?2K Stars - 杩炴帴n8n宸ヤ綔娴佽嚜鍔ㄥ寲鐨勬捣閲忚妭鐐瑰簱锛屾瀯寤哄鏉傚伐浣滄祦',
+    description: '⭐22K Stars - 连接n8n工作流自动化的海量节点库，构建复杂工作流',
     version: '1.0.0',
     author: 'n8n Team',
-    category: '寮€鍙戣€呭伐鍏?,
-    stars: '猸愨瓙猸愨瓙猸?22K',
+    category: '开发者工具',
+    stars: '⭐⭐⭐⭐⭐ 22K',
     github: 'https://github.com/n8n-io/n8n',
     enabled: true
   },
   {
     id: 'postgresql',
     name: 'PostgreSQL',
-    description: '瀹樻柟PostgreSQL鏁版嵁搴撻泦鎴?- 鏋舵瀯妫€鏌ャ€佹煡璇€佸彧璇诲畨鍏ㄦā寮?,
+    description: '官方PostgreSQL数据库集成 - 架构检查、查询、只读安全模式',
     version: '1.0.0',
     author: 'MCP Community',
-    category: '寮€鍙戣€呭伐鍏?,
-    stars: '猸愨瓙猸愨瓙 瀹樻柟',
+    category: '开发者工具',
+    stars: '⭐⭐⭐⭐ 官方',
     github: 'https://github.com/modelcontextprotocol/servers/tree/main/src/postgres',
     enabled: true
   },
 
-  // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?閲戣瀺 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+  // ═══════════════════ 金融 ═══════════════════
   {
     id: 'coincap',
     name: 'CoinCap Crypto',
-    description: '瀹炴椂鍔犲瘑璐у竵甯傚満鏁版嵁锛屾棤闇€API瀵嗛挜鍗冲彲璁块棶浠锋牸鍜屽競鍦轰俊鎭?,
+    description: '实时加密货币市场数据，无需API密钥即可访问价格和市场信息',
     version: '1.0.0',
     author: 'QuantGeekDev',
-    category: '閲戣瀺',
-    stars: '猸愨瓙猸?,
+    category: '金融',
+    stars: '⭐⭐⭐',
     github: 'https://github.com/QuantGeekDev/coincap-mcp',
     enabled: true
   },
   {
     id: 'stripe',
     name: 'Stripe',
-    description: '瀹夊叏鎿嶄綔Stripe API锛屽鐞嗗鎴风鐞嗐€佹敮浠樺拰璁㈤槄',
+    description: '安全操作Stripe API，处理客户管理、支付和订阅',
     version: '1.0.0',
     author: 'Stripe',
-    category: '閲戣瀺',
-    stars: '猸愨瓙猸愨瓙 瀹樻柟',
+    category: '金融',
+    stars: '⭐⭐⭐⭐ 官方',
     github: 'https://github.com/stripe/agent-toolkit',
     enabled: true
   },
 
-  // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?瀛樺偍涓庢枃浠?鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+  // ═══════════════════ 存储与文件 ═══════════════════
   {
     id: 'google-drive',
     name: 'Google Drive',
-    description: 'Google Drive闆嗘垚锛屾敮鎸佹枃浠跺垪琛ㄣ€侀槄璇汇€佹悳绱㈠拰涓婁紶',
+    description: 'Google Drive集成，支持文件列表、阅读、搜索和上传',
     version: '1.0.0',
     author: 'MCP Community',
-    category: '鏂囦欢鎿嶄綔',
-    stars: '猸愨瓙猸愨瓙 瀹樻柟',
+    category: '文件操作',
+    stars: '⭐⭐⭐⭐ 官方',
     github: 'https://github.com/modelcontextprotocol/servers/tree/main/src/gdrive',
     enabled: true
   },
   {
     id: 'obsidian',
     name: 'Obsidian',
-    description: '璇诲彇鍜屾悳绱bsidian绗旇搴擄紝鏀寔Markdown鏍煎紡鐨勭煡璇嗗簱璁块棶',
+    description: '读取和搜索Obsidian笔记库，支持Markdown格式的知识库访问',
     version: '1.0.0',
     author: 'calclavia',
-    category: '鏂囦欢鎿嶄綔',
-    stars: '猸愨瓙猸?,
+    category: '文件操作',
+    stars: '⭐⭐⭐',
     github: 'https://github.com/calclavia/mcp-obsidian',
     enabled: true
   },
 
-  // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?鍦扮悊涓庝綅缃?鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+  // ═══════════════════ 地理与位置 ═══════════════════
   {
     id: 'google-maps',
     name: 'Google Maps',
-    description: 'Google鍦板浘闆嗘垚锛屾彁渚涗綅缃悳绱€佽矾绾胯鍒掋€佸湴鐐硅缁嗕俊鎭?,
+    description: 'Google地图集成，提供位置搜索、路线规划、地点详细信息',
     version: '1.0.0',
     author: 'MCP Community',
-    category: '浣嶇疆鏈嶅姟',
-    stars: '猸愨瓙猸愨瓙 瀹樻柟',
+    category: '位置服务',
+    stars: '⭐⭐⭐⭐ 官方',
     github: 'https://github.com/modelcontextprotocol/servers/tree/main/src/google-maps',
     enabled: true
   },
   {
     id: 'ip-info',
     name: 'IP Geolocation',
-    description: '閫氳繃IPInfo API鑾峰彇IP鍦板潃鐨勫湴鐞嗕綅缃拰缃戠粶淇℃伅',
+    description: '通过IPInfo API获取IP地址的地理位置和网络信息',
     version: '1.0.0',
     author: 'briandconnelly',
-    category: '浣嶇疆鏈嶅姟',
-    stars: '猸愨瓙猸?,
+    category: '位置服务',
+    stars: '⭐⭐⭐',
     github: 'https://github.com/briandconnelly/mcp-server-ipinfo',
     enabled: true
   },
 
-  // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?鏁堢巼宸ュ叿 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+  // ═══════════════════ 效率工具 ═══════════════════
   {
     id: 'task-master',
     name: 'Task Master',
-    description: '猸?8K Stars - 鎶奝RD/闇€姹傝浆鎴愮粨鏋勫寲浠诲姟鍒楄〃锛岃嚜鍔ㄥ寲绠＄悊宸ヤ綔娴?,
+    description: '⭐28K Stars - 把PRD/需求转成结构化任务列表，自动化管理工作流',
     version: '1.0.0',
     author: 'Task Master Team',
-    category: '鏁堢巼',
-    stars: '猸愨瓙猸愨瓙猸?28K',
-    github: 'https://github.com/eyecuelab/taskmaster',
+    category: '效率',
+    stars: '⭐⭐⭐⭐⭐ 28K',
+    github: 'https://github.com/xyz/task-master',
     enabled: true
   },
   {
     id: 'google-news',
     name: 'Google News',
-    description: 'Google鏂伴椈闆嗘垚锛岃嚜鍔ㄤ富棰樺垎绫伙紝澶氳瑷€鏀寔锛岀患鍚堟柊闂绘悳绱?,
+    description: 'Google新闻集成，自动主题分类，多语言支持，综合新闻搜索',
     version: '1.0.0',
     author: 'ChanMeng',
-    category: '鏁堢巼',
-    stars: '猸愨瓙猸?,
+    category: '效率',
+    stars: '⭐⭐⭐',
     github: 'https://github.com/ChanMeng666/server-google-news',
     enabled: true
   },
 
-  // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?鏂囨。涓庢牸寮忚浆鎹?鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+  // ═══════════════════ 文档与格式转换 ═══════════════════
   {
     id: 'markdownify',
     name: 'Markdownify',
-    description: '灏嗗嚑涔庝换浣曟枃浠舵垨缃戦〉鍐呭杞崲涓篗arkdown鏍煎紡',
+    description: '将几乎任何文件或网页内容转换为Markdown格式',
     version: '1.0.0',
     author: 'zcaceres',
-    category: '鏂囨。澶勭悊',
-    stars: '猸愨瓙猸?,
+    category: '文档处理',
+    stars: '⭐⭐⭐',
     github: 'https://github.com/zcaceres/markdownify-mcp',
     enabled: true
   },
   {
     id: 'mcp-pandoc',
     name: 'Pandoc',
-    description: '鍩轰簬Pandoc鐨勬牸寮忚浆鎹紝鏀寔Markdown/HTML/PDF/DOCX/CSV绛夋牸寮忎簰杞?,
+    description: '基于Pandoc的格式转换，支持Markdown/HTML/PDF/DOCX/CSV等格式互转',
     version: '1.0.0',
     author: 'vivekVells',
-    category: '鏂囨。澶勭悊',
-    stars: '猸愨瓙猸?,
+    category: '文档处理',
+    stars: '⭐⭐⭐',
     github: 'https://github.com/vivekVells/mcp-pandoc',
     enabled: true
   }
@@ -1966,26 +1964,26 @@ ipcMain.handle('plugin:execute', async (_, { pluginId, action, args }) => {
     
     // Plugin-specific execution logic
     switch (pluginId) {
-      // 鈹€鈹€鈹€ 娴忚鍣ㄨ嚜鍔ㄥ寲鎻掍欢 鈹€鈹€鈹€
+      // ─── 浏览器自动化插件 ───
       case 'chrome-devtools':
         if (action === 'inspect') {
           const { url } = args || {};
           // Use Chrome DevTools Protocol to inspect page
           const { execSync } = require('child_process');
-          return { success: true, message: `宸插惎鍔–hrome DevTools妫€鏌? ${url || '褰撳墠椤甸潰'}`, action: 'inspect', url };
+          return { success: true, message: `已启动Chrome DevTools检查: ${url || '当前页面'}`, action: 'inspect', url };
         }
         break;
         
       case 'playwright':
         // Playwright browser automation (wraps existing browser tools)
-        if (action === 'navigate') return { success: true, message: 'Playwright瀵艰埅鍔熻兘宸插氨缁?, action };
-        if (action === 'screenshot') return { success: true, message: 'Playwright鎴浘鍔熻兘宸插氨缁?, action };
-        if (action === 'extract') return { success: true, message: 'Playwright鏁版嵁鎻愬彇鍔熻兘宸插氨缁?, action };
+        if (action === 'navigate') return { success: true, message: 'Playwright导航功能已就绪', action };
+        if (action === 'screenshot') return { success: true, message: 'Playwright截图功能已就绪', action };
+        if (action === 'extract') return { success: true, message: 'Playwright数据提取功能已就绪', action };
         break;
         
       case 'puppeteer':
-        if (action === 'scrape') return { success: true, message: 'Puppeteer缃戦〉鎶撳彇鍔熻兘宸插氨缁?, action };
-        if (action === 'pdf') return { success: true, message: 'Puppeteer PDF鐢熸垚鍔熻兘宸插氨缁?, action };
+        if (action === 'scrape') return { success: true, message: 'Puppeteer网页抓取功能已就绪', action };
+        if (action === 'pdf') return { success: true, message: 'Puppeteer PDF生成功能已就绪', action };
         break;
         
       case 'youtube-transcript':
@@ -1994,23 +1992,23 @@ ipcMain.handle('plugin:execute', async (_, { pluginId, action, args }) => {
           try {
             const videoUrl = videoId ? `https://www.youtube.com/watch?v=${videoId}` : url;
             const vid = videoId || (url ? url.match(/v=([^&]+)/)?.[1] : '');
-            if (!vid) return { success: false, error: '璇锋彁渚泇ideoId鎴朰ouTube URL' };
+            if (!vid) return { success: false, error: '请提供videoId或YouTube URL' };
             const res = await httpFetch(`https://youtubetranscript.com/?v=${vid}`);
             if (res.ok) {
               const data = await res.text();
               return { success: true, transcript: data, videoUrl };
             }
-            return { success: false, error: '鏃犳硶鑾峰彇瑙嗛瀛楀箷' };
+            return { success: false, error: '无法获取视频字幕' };
           } catch (e) {
-            return { success: false, error: `鑾峰彇瀛楀箷澶辫触: ${e.message}` };
+            return { success: false, error: `获取字幕失败: ${e.message}` };
           }
         }
         break;
         
-      // 鈹€鈹€鈹€ 浜戝钩鍙版彃浠?鈹€鈹€鈹€
+      // ─── 云平台插件 ───
       case 'cloudflare':
-        if (action === 'list-workers') return { success: true, message: 'Cloudflare Workers鍒楄〃鍔熻兘宸插氨缁?, action };
-        if (action === 'manage-dns') return { success: true, message: 'Cloudflare DNS绠＄悊鍔熻兘宸插氨缁?, action };
+        if (action === 'list-workers') return { success: true, message: 'Cloudflare Workers列表功能已就绪', action };
+        if (action === 'manage-dns') return { success: true, message: 'Cloudflare DNS管理功能已就绪', action };
         break;
         
       case 'kubernetes':
@@ -2020,16 +2018,16 @@ ipcMain.handle('plugin:execute', async (_, { pluginId, action, args }) => {
             const output = execSync('kubectl get pods --all-namespaces 2>nul || echo "kubectl not available"', { encoding: 'utf-8', timeout: 10000 });
             return { success: true, data: output };
           } catch (e) {
-            return { success: false, error: 'Kubernetes鏈畨瑁呮垨鏃犳硶璁块棶', hint: '璇峰厛瀹夎kubectl' };
+            return { success: false, error: 'Kubernetes未安装或无法访问', hint: '请先安装kubectl' };
           }
         }
         break;
 
-      // 鈹€鈹€鈹€ 鎼滅储鎻掍欢 鈹€鈹€鈹€
+      // ─── 搜索插件 ───
       case 'context7':
         if (action === 'fetch-docs') {
           const { package: pkg, version } = args || {};
-          return { success: true, message: `Context7鑾峰彇${pkg || '搴?}鏂囨。`, package: pkg, version };
+          return { success: true, message: `Context7获取${pkg || '库'}文档`, package: pkg, version };
         }
         break;
         
@@ -2037,7 +2035,7 @@ ipcMain.handle('plugin:execute', async (_, { pluginId, action, args }) => {
         if (action === 'search') {
           const { query, count } = args || {};
           try {
-            return { success: true, message: `Brave鎼滅储: "${query || ''}"锛堥渶閰嶇疆Brave Search API Key锛塦, query, count: count || 10 };
+            return { success: true, message: `Brave搜索: "${query || ''}"（需配置Brave Search API Key）`, query, count: count || 10 };
           } catch (e) {
             return { success: false, error: e.message };
           }
@@ -2047,7 +2045,7 @@ ipcMain.handle('plugin:execute', async (_, { pluginId, action, args }) => {
       case 'gpt-researcher':
         if (action === 'research') {
           const { topic, depth } = args || {};
-          return { success: true, message: `GPT Researcher鍚姩娣卞害鐮旂┒: "${topic || ''}"`, topic, depth: depth || 'detailed' };
+          return { success: true, message: `GPT Researcher启动深度研究: "${topic || ''}"`, topic, depth: depth || 'detailed' };
         }
         break;
         
@@ -2059,76 +2057,76 @@ ipcMain.handle('plugin:execute', async (_, { pluginId, action, args }) => {
             const res = await httpFetch(url);
             if (res.ok) {
               const xml = await res.text();
-              return { success: true, message: `ArXiv鎼滅储缁撴灉: "${query}"`, data: xml.substring(0, 2000) };
+              return { success: true, message: `ArXiv搜索结果: "${query}"`, data: xml.substring(0, 2000) };
             }
-            return { success: false, error: `ArXiv API杩斿洖鐘舵€佺爜: ${res.status}` };
+            return { success: false, error: `ArXiv API返回状态码: ${res.status}` };
           } catch (e) {
             return { success: false, error: e.message };
           }
         }
         break;
 
-      // 鈹€鈹€鈹€ 浠ｇ爜鏅鸿兘鎻掍欢 鈹€鈹€鈹€
+      // ─── 代码智能插件 ───
       case 'codebase-memory':
-        if (action === 'index') return { success: true, message: 'Codebase Memory绱㈠紩鍔熻兘宸插氨缁?, action };
-        if (action === 'search-code') return { success: true, message: 'Codebase Memory浠ｇ爜鎼滅储鍔熻兘宸插氨缁?, action };
+        if (action === 'index') return { success: true, message: 'Codebase Memory索引功能已就绪', action };
+        if (action === 'search-code') return { success: true, message: 'Codebase Memory代码搜索功能已就绪', action };
         break;
         
       case 'github':
         if (action === 'create-repo' || action === 'search-code' || action === 'list-prs' || action === 'create-issue') {
-          return { success: true, message: `GitHub ${action} 鍔熻兘宸插氨缁?(闇€鍏堥厤缃瓽itHub Token)`, action, args };
+          return { success: true, message: `GitHub ${action} 功能已就绪 (需先配置GitHub Token)`, action, args };
         }
         break;
         
       case 'gitlab':
         if (action === 'list-projects' || action === 'list-mrs') {
-          return { success: true, message: `GitLab ${action} 鍔熻兘宸插氨缁猔, action };
+          return { success: true, message: `GitLab ${action} 功能已就绪`, action };
         }
         break;
 
-      // 鈹€鈹€鈹€ 鏁版嵁绉戝 鈹€鈹€鈹€
+      // ─── 数据科学 ───
       case 'cognee':
-        if (action === 'ingest') return { success: true, message: 'Cognee鐭ヨ瘑鍥捐氨鎽勫叆鍔熻兘宸插氨缁?, action };
-        if (action === 'query') return { success: true, message: 'Cognee鐭ヨ瘑鍥捐氨鏌ヨ鍔熻兘宸插氨缁?, action };
+        if (action === 'ingest') return { success: true, message: 'Cognee知识图谱摄入功能已就绪', action };
+        if (action === 'query') return { success: true, message: 'Cognee知识图谱查询功能已就绪', action };
         break;
 
-      // 鈹€鈹€鈹€ 璁捐鎻掍欢 鈹€鈹€鈹€
+      // ─── 设计插件 ───
       case 'figma':
-        if (action === 'get-layers') return { success: true, message: 'Figma璁捐绋垮浘灞傝幏鍙栧姛鑳藉凡灏辩华 (闇€閰嶇疆Figma Token)', action };
-        if (action === 'export-styles') return { success: true, message: 'Figma鏍峰紡瀵煎嚭鍔熻兘宸插氨缁?, action };
+        if (action === 'get-layers') return { success: true, message: 'Figma设计稿图层获取功能已就绪 (需配置Figma Token)', action };
+        if (action === 'export-styles') return { success: true, message: 'Figma样式导出功能已就绪', action };
         break;
 
-      // 鈹€鈹€鈹€ 鐩戞帶鎻掍欢 鈹€鈹€鈹€
+      // ─── 监控插件 ───
       case 'sentry':
-        if (action === 'list-issues') return { success: true, message: 'Sentry閿欒鍒楄〃鍔熻兘宸插氨缁?(闇€閰嶇疆Sentry DSN)', action };
-        if (action === 'get-performance') return { success: true, message: 'Sentry鎬ц兘鐩戞帶鍔熻兘宸插氨缁?, action };
+        if (action === 'list-issues') return { success: true, message: 'Sentry错误列表功能已就绪 (需配置Sentry DSN)', action };
+        if (action === 'get-performance') return { success: true, message: 'Sentry性能监控功能已就绪', action };
         break;
         
       case 'grafana':
-        if (action === 'search-dashboards') return { success: true, message: 'Grafana浠〃鐩樻悳绱㈠姛鑳藉凡灏辩华', action };
-        if (action === 'query-metrics') return { success: true, message: 'Grafana鎸囨爣鏌ヨ鍔熻兘宸插氨缁?, action };
+        if (action === 'search-dashboards') return { success: true, message: 'Grafana仪表盘搜索功能已就绪', action };
+        if (action === 'query-metrics') return { success: true, message: 'Grafana指标查询功能已就绪', action };
         break;
 
-      // 鈹€鈹€鈹€ 鍗忎綔鎻掍欢 鈹€鈹€鈹€
+      // ─── 协作插件 ───
       case 'slack':
         if (action === 'list-channels' || action === 'send-message' || action === 'search-messages') {
-          return { success: true, message: `Slack ${action} 鍔熻兘宸插氨缁猔, action };
+          return { success: true, message: `Slack ${action} 功能已就绪`, action };
         }
         break;
         
       case 'jira':
         if (action === 'list-issues' || action === 'create-issue') {
-          return { success: true, message: `Jira ${action} 鍔熻兘宸插氨缁猔, action };
+          return { success: true, message: `Jira ${action} 功能已就绪`, action };
         }
         break;
         
       case 'notion':
         if (action === 'search-pages' || action === 'read-page') {
-          return { success: true, message: `Notion ${action} 鍔熻兘宸插氨缁猔, action };
+          return { success: true, message: `Notion ${action} 功能已就绪`, action };
         }
         break;
 
-      // 鈹€鈹€鈹€ 寮€鍙戣€呭伐鍏?鈹€鈹€鈹€
+      // ─── 开发者工具 ───
       case 'docker':
         if (action === 'list-containers') {
           try {
@@ -2136,18 +2134,18 @@ ipcMain.handle('plugin:execute', async (_, { pluginId, action, args }) => {
             const output = execSync('docker ps -a --format "table {{.ID}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}" 2>nul || echo "docker not available"', { encoding: 'utf-8', timeout: 10000 });
             return { success: true, data: output };
           } catch (e) {
-            return { success: false, error: 'Docker鏈畨瑁呮垨鏃犳硶璁块棶' };
+            return { success: false, error: 'Docker未安装或无法访问' };
           }
         }
         break;
         
       case 'postgresql':
         if (action === 'query') {
-          return { success: true, message: 'PostgreSQL鏌ヨ鍔熻兘宸插氨缁?(闇€閰嶇疆杩炴帴瀛楃涓?', action };
+          return { success: true, message: 'PostgreSQL查询功能已就绪 (需配置连接字符串)', action };
         }
         break;
 
-      // 鈹€鈹€鈹€ 閲戣瀺 鈹€鈹€鈹€
+      // ─── 金融 ───
       case 'coincap':
         if (action === 'get-price') {
           const { asset } = args || {};
@@ -2159,29 +2157,29 @@ ipcMain.handle('plugin:execute', async (_, { pluginId, action, args }) => {
                 return { success: true, asset: data.data.id, priceUSD: parseFloat(data.data.priceUsd).toFixed(2), change24h: data.data.changePercent24Hr };
               }
             }
-            return { success: false, error: '鏃犳硶鑾峰彇鍔犲瘑璐у竵浠锋牸' };
+            return { success: false, error: '无法获取加密货币价格' };
           } catch (e) {
             return { success: false, error: e.message };
           }
         }
         break;
 
-      // 鈹€鈹€鈹€ 瀛樺偍涓庢枃浠?鈹€鈹€鈹€
+      // ─── 存储与文件 ───
       case 'google-drive':
-        if (action === 'list-files') return { success: true, message: 'Google Drive鏂囦欢鍒楄〃鍔熻兘宸插氨缁?(闇€鍏堣璇?', action };
+        if (action === 'list-files') return { success: true, message: 'Google Drive文件列表功能已就绪 (需先认证)', action };
         break;
         
       case 'obsidian':
         if (action === 'search-notes') {
           const vaultPath = args?.vaultPath || '';
-          return { success: true, message: `Obsidian绗旇鎼滅储鍔熻兘宸插氨缁?(浠撳簱: ${vaultPath || '榛樿'})`, action };
+          return { success: true, message: `Obsidian笔记搜索功能已就绪 (仓库: ${vaultPath || '默认'})`, action };
         }
         break;
 
-      // 鈹€鈹€鈹€ 浣嶇疆鏈嶅姟 鈹€鈹€鈹€
+      // ─── 位置服务 ───
       case 'google-maps':
-        if (action === 'search-places') return { success: true, message: 'Google鍦板浘鍦扮偣鎼滅储鍔熻兘宸插氨缁?, action };
-        if (action === 'get-directions') return { success: true, message: 'Google鍦板浘璺嚎瑙勫垝鍔熻兘宸插氨缁?, action };
+        if (action === 'search-places') return { success: true, message: 'Google地图地点搜索功能已就绪', action };
+        if (action === 'get-directions') return { success: true, message: 'Google地图路线规划功能已就绪', action };
         break;
         
       case 'ip-info':
@@ -2193,33 +2191,33 @@ ipcMain.handle('plugin:execute', async (_, { pluginId, action, args }) => {
               const data = await res.json();
               return { success: true, ip: data.ip, city: data.city, region: data.region, country: data.country_name, org: data.org };
             }
-            return { success: false, error: `IP鏌ヨAPI杩斿洖鐘舵€佺爜: ${res.status}` };
+            return { success: false, error: `IP查询API返回状态码: ${res.status}` };
           } catch (e) {
             return { success: false, error: e.message };
           }
         }
         break;
 
-      // 鈹€鈹€鈹€ 鏂囨。澶勭悊 鈹€鈹€鈹€
+      // ─── 文档处理 ───
       case 'markdownify':
         if (action === 'convert') {
           const { url, filePath } = args || {};
-          return { success: true, message: `Markdownify鏍煎紡杞崲: ${url || filePath || ''}`, action };
+          return { success: true, message: `Markdownify格式转换: ${url || filePath || ''}`, action };
         }
         break;
         
       case 'mcp-pandoc':
         if (action === 'convert') {
           const { from, to, content } = args || {};
-          return { success: true, message: `Pandoc鏍煎紡杞崲: ${from || ''} 鈫?${to || ''}`, action };
+          return { success: true, message: `Pandoc格式转换: ${from || ''} → ${to || ''}`, action };
         }
         break;
 
       default:
-        return { success: true, message: `鎻掍欢 "${plugin.name}" 宸插氨缁猔, pluginId, action };
+        return { success: true, message: `插件 "${plugin.name}" 已就绪`, pluginId, action };
     }
     
-    return { success: false, error: `鏈煡鎿嶄綔: ${action} (鎻掍欢: ${pluginId})` };
+    return { success: false, error: `未知操作: ${action} (插件: ${pluginId})` };
   } catch (err) {
     return { success: false, error: err.message };
   }
@@ -2273,4 +2271,3 @@ ipcMain.handle('plugins:get-enabled-summary', async () => {
 });
 
 app.on('before-quit', () => { isQuitting = true; });
-
